@@ -48,8 +48,17 @@ class L10n {
 
   String get loadError => zh ? '無法載入課程資料' : 'Could not load course data';
 
-  String get emptyHint =>
-      zh ? '在左邊選擇班別，就會加到時間表。' : 'Choose a section on the left to place it on the timetable.';
+  String get emptyHint => zh ? '選擇班別後，就會加到時間表。' : 'Choose a section to place it on the timetable.';
+
+  String get coursesTab => zh ? '選科' : 'Courses';
+
+  String get timetableTab => zh ? '時間表' : 'Timetable';
+
+  String viewTimetable(int courses) {
+    if (zh) return '查看時間表 · $courses 科';
+    final label = courses == 1 ? 'course' : 'courses';
+    return 'View timetable · $courses $label';
+  }
 
   String get selected => zh ? '已選科目' : 'Selected';
 

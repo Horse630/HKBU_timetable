@@ -41,6 +41,7 @@ class _TimetableAppState extends State<TimetableApp> {
   var _query = '';
   var _expanded = '';
   var _downloading = false;
+  var _showTimetable = false;
 
   L10n get strings => L10n(_lang);
 
@@ -353,11 +354,37 @@ class _TimetableAppState extends State<TimetableApp> {
             ],
           );
         }
+        final courseCount = _picks.length;
         return Column(
           children: [
-            SizedBox(height: 340, child: browser),
-            const Divider(height: 1),
-            Expanded(child: board),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: _ViewSwitch(
+                coursesLabel: strings.coursesTab,
+                timetableLabel: courseCount == 0 ? strings.timetableTab : '${strings.timetableTab} · $courseCount',
+                showTimetable: _showTimetable,
+                onChanged: (showTimetable) => setState(() => _showTimetable = showTimetable),
+              ),
+            ),
+            Expanded(
+              child: IndexedStack(
+                index: _showTimetable ? 1 : 0,
+                sizing: StackFit.expand,
+                children: [browser, board],
+              ),
+            ),
+            if (!_showTimetable && courseCount > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF0C3C6E),
+                    minimumSize: const Size.fromHeight(44),
+                  ),
+                  onPressed: () => setState(() => _showTimetable = true),
+                  child: Text(strings.viewTimetable(courseCount)),
+                ),
+              ),
           ],
         );
       },
@@ -391,43 +418,35 @@ class _Header extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 760;
-            return Row(
+            final credit = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(strings.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
-                      Text(strings.semester, style: const TextStyle(color: Color(0xFFD6E4F0), fontSize: 13)),
-                      const SizedBox(height: 2),
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 6,
-                        children: [
-                          Text(strings.credit, style: const TextStyle(color: Color(0xFFD6E4F0), fontSize: 12)),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 2),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () => openExternal('mailto:${strings.creditEmail}'),
-                            child: Text(
-                              strings.creditEmail,
-                              style: const TextStyle(fontSize: 12, decoration: TextDecoration.underline),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                Text(strings.credit, style: const TextStyle(color: Color(0xFFD6E4F0), fontSize: 12, height: 1.3)),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  onPressed: () => openExternal('mailto:${strings.creditEmail}'),
+                  child: Text(
+                    strings.creditEmail,
+                    style: const TextStyle(fontSize: 12, decoration: TextDecoration.underline),
                   ),
                 ),
+              ],
+            );
+            final actions = Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 _LangSwitch(current: strings.code, onChanged: onLanguage),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 if (compact)
                   IconButton(
                     tooltip: strings.download,
+                    visualDensity: VisualDensity.compact,
                     onPressed: downloading ? null : onDownload,
                     icon: downloading
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -443,12 +462,100 @@ class _Header extends StatelessWidget {
                   ),
                 IconButton(
                   tooltip: strings.clear,
+                  visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
                   onPressed: canClear ? onClear : null,
                   icon: Icon(Icons.delete_outline, color: canClear ? Colors.white : Colors.white38),
                 ),
               ],
             );
+            if (!compact) {
+              return Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(strings.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                        Text(strings.semester, style: const TextStyle(color: Color(0xFFD6E4F0), fontSize: 13)),
+                        const SizedBox(height: 2),
+                        credit,
+                      ],
+                    ),
+                  ),
+                  actions,
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        strings.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    actions,
+                  ],
+                ),
+                Text(strings.semester, style: const TextStyle(color: Color(0xFFD6E4F0), fontSize: 13)),
+                const SizedBox(height: 2),
+                credit,
+              ],
+            );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewSwitch extends StatelessWidget {
+  const _ViewSwitch({
+    required this.coursesLabel,
+    required this.timetableLabel,
+    required this.showTimetable,
+    required this.onChanged,
+  });
+
+  final String coursesLabel;
+  final String timetableLabel;
+  final bool showTimetable;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE7EEF5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          _tab(coursesLabel, !showTimetable, () => onChanged(false)),
+          _tab(timetableLabel, showTimetable, () => onChanged(true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _tab(String label, bool selected, VoidCallback onTap) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: selected ? Colors.white : const Color(0xFF0C3C6E),
+            backgroundColor: selected ? const Color(0xFF0C3C6E) : Colors.transparent,
+            minimumSize: const Size.fromHeight(36),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onPressed: onTap,
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
       ),
     );
@@ -530,6 +637,7 @@ class _Board extends StatelessWidget {
           if (catalog.byCode[entry.key]?.sectionById(id)?.hasTime == false) '${entry.key} ($id)',
     ];
 
+    final compact = MediaQuery.sizeOf(context).width < 1040;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -548,7 +656,7 @@ class _Board extends StatelessWidget {
             lines: unscheduled,
           ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: EdgeInsets.fromLTRB(compact ? 12 : 16, 8, compact ? 12 : 16, 0),
           child: entries.isEmpty
               ? Text(strings.emptyHint, style: const TextStyle(color: Color(0xFF475467)))
               : Column(
@@ -556,21 +664,46 @@ class _Board extends StatelessWidget {
                   children: [
                     Text(strings.count(entries.length, formatUnits(units)), style: const TextStyle(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final entry in entries)
-                          for (final sectionId in entry.value)
-                            InputChip(
-                              label: Text('${entry.key} ($sectionId)'),
-                              deleteButtonTooltipMessage: strings.remove,
-                              onDeleted: () => onRemove(entry.key, sectionId),
-                            ),
-                      ],
-                    ),
+                    if (compact)
+                      SizedBox(
+                        height: 40,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            for (final entry in entries)
+                              for (final sectionId in entry.value)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: InputChip(
+                                    label: Text('${entry.key} ($sectionId)'),
+                                    visualDensity: VisualDensity.compact,
+                                    deleteButtonTooltipMessage: strings.remove,
+                                    onDeleted: () => onRemove(entry.key, sectionId),
+                                  ),
+                                ),
+                          ],
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final entry in entries)
+                            for (final sectionId in entry.value)
+                              InputChip(
+                                label: Text('${entry.key} ($sectionId)'),
+                                deleteButtonTooltipMessage: strings.remove,
+                                onDeleted: () => onRemove(entry.key, sectionId),
+                              ),
+                        ],
+                      ),
                   ],
                 ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(compact ? 12 : 16, 8, compact ? 12 : 16, 0),
+          child: Text(strings.venueNote, style: const TextStyle(color: Color(0xFF667085), fontSize: 12)),
         ),
         Expanded(
           child: LayoutBuilder(
@@ -592,7 +725,7 @@ class _Board extends StatelessWidget {
                         child: Align(
                           alignment: Alignment.topCenter,
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            padding: EdgeInsets.fromLTRB(compact ? 8 : 16, 8, compact ? 8 : 16, 8),
                             child: RepaintBoundary(
                               key: boardKey,
                               child: ColoredBox(
@@ -601,6 +734,11 @@ class _Board extends StatelessWidget {
                                   days: days,
                                   blocks: blocks,
                                   strings: strings,
+                                  metrics: TimetableMetrics.forWidth(
+                                    constraints.maxWidth - (compact ? 16 : 32),
+                                    days.length,
+                                    compact: compact,
+                                  ),
                                   onBlockTap: onBlockTap,
                                 ),
                               ),
@@ -614,10 +752,6 @@ class _Board extends StatelessWidget {
               );
             },
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Text(strings.venueNote, style: const TextStyle(color: Color(0xFF667085), fontSize: 12)),
         ),
       ],
     );

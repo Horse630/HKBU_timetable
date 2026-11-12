@@ -4,20 +4,40 @@ import '../l10n.dart';
 import '../schedule.dart';
 
 class TimetableMetrics {
-  const TimetableMetrics._();
+  const TimetableMetrics({
+    this.timeWidth = 72,
+    this.dayWidth = 156,
+    this.headerHeight = 42,
+    this.hourHeight = 48,
+  });
 
-  static const timeWidth = 72.0;
-  static const dayWidth = 156.0;
-  static const headerHeight = 42.0;
-  static const hourHeight = 48.0;
   static const gridStart = 8 * 60 + 30;
   static const gridEnd = 22 * 60 + 30;
 
-  static int get hourCount => (gridEnd - gridStart) ~/ 60;
+  final double timeWidth;
+  final double dayWidth;
+  final double headerHeight;
+  final double hourHeight;
 
-  static double widthFor(int dayCount) => timeWidth + dayCount * dayWidth;
+  int get hourCount => (gridEnd - gridStart) ~/ 60;
 
-  static double get height => headerHeight + hourCount * hourHeight;
+  double widthFor(int dayCount) => timeWidth + dayCount * dayWidth;
+
+  double get height => headerHeight + hourCount * hourHeight;
+
+  /// On a phone, keep columns wide enough to read a course code and scroll the week.
+  factory TimetableMetrics.forWidth(double maxWidth, int dayCount, {required bool compact}) {
+    if (!compact || dayCount <= 0) return const TimetableMetrics();
+    const timeWidth = 46.0;
+    const minDayWidth = 96.0;
+    final fitted = (maxWidth - timeWidth) / dayCount;
+    return TimetableMetrics(
+      timeWidth: timeWidth,
+      dayWidth: fitted >= minDayWidth ? fitted : minDayWidth,
+      headerHeight: 36,
+      hourHeight: 42,
+    );
+  }
 }
 
 class TimetableGrid extends StatelessWidget {
@@ -27,31 +47,33 @@ class TimetableGrid extends StatelessWidget {
     required this.blocks,
     required this.strings,
     required this.onBlockTap,
+    this.metrics = const TimetableMetrics(),
   });
 
   final List<int> days;
   final List<GridBlock> blocks;
   final L10n strings;
   final ValueChanged<GridBlock> onBlockTap;
+  final TimetableMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
-    final width = TimetableMetrics.widthFor(days.length);
-    final height = TimetableMetrics.height;
     return SizedBox(
-      width: width,
-      height: height,
+      width: metrics.widthFor(days.length),
+      height: metrics.height,
       child: Stack(
         children: [
           Positioned.fill(
             child: CustomPaint(
               painter: _GridPainter(
+                metrics: metrics,
                 dayLabels: [for (final day in days) strings.dayShort(day)],
               ),
             ),
           ),
           for (final block in blocks)
-            if (days.contains(block.meeting.weekday)) _Block(block: block, days: days, onTap: () => onBlockTap(block)),
+            if (days.contains(block.meeting.weekday))
+              _Block(block: block, days: days, metrics: metrics, onTap: () => onBlockTap(block)),
         ],
       ),
     );
@@ -59,23 +81,25 @@ class TimetableGrid extends StatelessWidget {
 }
 
 class _Block extends StatelessWidget {
-  const _Block({required this.block, required this.days, required this.onTap});
+  const _Block({required this.block, required this.days, required this.metrics, required this.onTap});
 
   final GridBlock block;
   final List<int> days;
+  final TimetableMetrics metrics;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final dayIndex = days.indexOf(block.meeting.weekday);
     final top =
-        TimetableMetrics.headerHeight +
-        (block.meeting.startMinute - TimetableMetrics.gridStart) * TimetableMetrics.hourHeight / 60;
-    final rawHeight = (block.meeting.endMinute - block.meeting.startMinute) * TimetableMetrics.hourHeight / 60;
-    final laneWidth = TimetableMetrics.dayWidth / block.laneCount;
-    final left = TimetableMetrics.timeWidth + dayIndex * TimetableMetrics.dayWidth + block.lane * laneWidth;
+        metrics.headerHeight + (block.meeting.startMinute - TimetableMetrics.gridStart) * metrics.hourHeight / 60;
+    final rawHeight = (block.meeting.endMinute - block.meeting.startMinute) * metrics.hourHeight / 60;
+    final laneWidth = metrics.dayWidth / block.laneCount;
+    final left = metrics.timeWidth + dayIndex * metrics.dayWidth + block.lane * laneWidth;
     final venue = block.meeting.venue;
-    final label = '${block.course.code} (${block.section.id})';
+    final label = metrics.dayWidth < 120
+        ? '${block.course.code}\n${block.section.id}'
+        : '${block.course.code} (${block.section.id})';
     return Positioned(
       left: left + 1,
       top: top + 1,
@@ -106,8 +130,9 @@ class _Block extends StatelessWidget {
 }
 
 class _GridPainter extends CustomPainter {
-  _GridPainter({required this.dayLabels});
+  _GridPainter({required this.metrics, required this.dayLabels});
 
+  final TimetableMetrics metrics;
   final List<String> dayLabels;
 
   static const _line = Color(0xFFD0D0D0);
@@ -118,20 +143,20 @@ class _GridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, TimetableMetrics.headerHeight),
+      Rect.fromLTWH(0, 0, size.width, metrics.headerHeight),
       Paint()..color = _header,
     );
 
     final line = Paint()
       ..color = _line
       ..strokeWidth = 1;
-    for (var hour = 0; hour <= TimetableMetrics.hourCount; hour++) {
-      final y = TimetableMetrics.headerHeight + hour * TimetableMetrics.hourHeight;
+    for (var hour = 0; hour <= metrics.hourCount; hour++) {
+      final y = metrics.headerHeight + hour * metrics.hourHeight;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
     }
-    canvas.drawLine(Offset(TimetableMetrics.timeWidth, 0), Offset(TimetableMetrics.timeWidth, size.height), line);
+    canvas.drawLine(Offset(metrics.timeWidth, 0), Offset(metrics.timeWidth, size.height), line);
     for (var day = 0; day <= dayLabels.length; day++) {
-      final x = TimetableMetrics.timeWidth + day * TimetableMetrics.dayWidth;
+      final x = metrics.timeWidth + day * metrics.dayWidth;
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
     }
     canvas.drawRect(
@@ -142,19 +167,19 @@ class _GridPainter extends CustomPainter {
         ..color = _line,
     );
 
-    for (var hour = 0; hour < TimetableMetrics.hourCount; hour++) {
+    for (var hour = 0; hour < metrics.hourCount; hour++) {
       final minutes = TimetableMetrics.gridStart + hour * 60;
       final label = '${(minutes ~/ 60).toString().padLeft(2, '0')}:${(minutes % 60).toString().padLeft(2, '0')}';
       final painter = TextPainter(
         text: TextSpan(
           text: label,
-          style: const TextStyle(color: Colors.black, fontSize: 13, fontFamily: _font),
+          style: TextStyle(color: Colors.black, fontSize: metrics.timeWidth < 60 ? 11 : 13, fontFamily: _font),
         ),
         textDirection: TextDirection.ltr,
-      )..layout(maxWidth: TimetableMetrics.timeWidth - 8);
+      )..layout(maxWidth: metrics.timeWidth - 6);
       painter.paint(
         canvas,
-        Offset(8, TimetableMetrics.headerHeight + hour * TimetableMetrics.hourHeight + (TimetableMetrics.hourHeight - painter.height) / 2),
+        Offset(4, metrics.headerHeight + hour * metrics.hourHeight + (metrics.hourHeight - painter.height) / 2),
       );
       painter.dispose();
     }
@@ -170,8 +195,8 @@ class _GridPainter extends CustomPainter {
       painter.paint(
         canvas,
         Offset(
-          TimetableMetrics.timeWidth + day * TimetableMetrics.dayWidth + (TimetableMetrics.dayWidth - painter.width) / 2,
-          (TimetableMetrics.headerHeight - painter.height) / 2,
+          metrics.timeWidth + day * metrics.dayWidth + (metrics.dayWidth - painter.width) / 2,
+          (metrics.headerHeight - painter.height) / 2,
         ),
       );
       painter.dispose();
@@ -180,6 +205,7 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GridPainter oldDelegate) {
+    if (oldDelegate.metrics != metrics) return true;
     if (oldDelegate.dayLabels.length != dayLabels.length) return true;
     for (var i = 0; i < dayLabels.length; i++) {
       if (oldDelegate.dayLabels[i] != dayLabels[i]) return true;
