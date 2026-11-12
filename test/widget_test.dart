@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hkbu_timetable/download.dart';
 import 'package:hkbu_timetable/models.dart';
 import 'package:hkbu_timetable/schedule.dart';
 
@@ -17,9 +18,9 @@ void main() {
       _course('ISEM3027', 'Fri', '16:30', '17:30'),
     ]);
     final blocks = layoutBlocks(catalog, {
-      'COMP4006': '00001',
-      'ISEM3036': '00001',
-      'ISEM3027': '00001',
+      'COMP4006': ['00001'],
+      'ISEM3036': ['00001'],
+      'ISEM3027': ['00001'],
     });
 
     final comp = blocks.singleWhere((block) => block.course.code == 'COMP4006');
@@ -29,6 +30,55 @@ void main() {
     expect(isem.laneCount, 2);
     expect(findClashes(blocks), hasLength(1));
   });
+
+  test('sections of the same course can be selected separately', () {
+    final course = Course(
+      code: 'COMP3115',
+      title: 'Exploratory Data Analysis and Visualization',
+      chineseTitle: '',
+      units: 3,
+      outline: '',
+      prerequisites: const [],
+      corequisites: const [],
+      targetStudents: const [],
+      sections: [
+        _section('00001', 'Thu', '15:30', '17:20'),
+        _section('20001', 'Thu', '16:00', '17:00'),
+      ],
+    );
+    final blocks = layoutBlocks(Catalog([course]), {
+      'COMP3115': ['00001', '20001'],
+    });
+    expect(blocks.map((block) => block.section.id).toSet(), {'00001', '20001'});
+    expect(blocks.every((block) => block.conflict), isTrue);
+    expect(findClashes(blocks), hasLength(1));
+  });
+
+  test('png filename includes the creation date', () {
+    expect(
+      timetablePngName(DateTime(2026, 11, 13, 1, 46)),
+      'hkbu-timetable-2026-11-13-0146.png',
+    );
+  });
+}
+
+Section _section(String id, String day, String start, String end) {
+  return Section(
+    id: id,
+    instructors: const [],
+    medium: 'English',
+    meetings: [
+      Meeting(
+        weekday: weekdays[day]!,
+        startMinute: minutesOf(start),
+        endMinute: minutesOf(end),
+        venue: '',
+        day: day,
+        start: start,
+        end: end,
+      ),
+    ],
+  );
 }
 
 Course _course(String code, String day, String start, String end) {

@@ -9,15 +9,23 @@ class L10n {
 
   String get semester => zh ? '2026–27 年度第二學期' : 'Semester 2, 2026–27';
 
+  String get credit => zh ? '由四年級計算機科學學生 Ma Chun Kit 製作' : 'Made by Ma Chun Kit, a Year 4 Computer Science student';
+
+  String get creditEmail => '23230215@life.hkbu.edu.hk';
+
   String get searchHint => zh ? '搜尋科目編號或名稱' : 'Search code or title';
 
   String get add => zh ? '加入' : 'Add';
 
   String get remove => zh ? '移除' : 'Remove';
 
-  String get switchTo => zh ? '改選' : 'Switch';
-
   String get download => zh ? '下載圖片' : 'Download PNG';
+
+  String get saveToPhotos => zh ? '儲存到照片' : 'Save to Photos';
+
+  String get saveImageHint => zh
+      ? '長按圖片，然後點「加入照片」或「儲存圖片」。也可以按「儲存到照片」。'
+      : 'Long-press the image, then tap Add to Photos or Save Image. You can also tap Save to Photos.';
 
   String get clear => zh ? '清除' : 'Clear';
 

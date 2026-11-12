@@ -18,7 +18,7 @@ class CourseBrowser extends StatelessWidget {
 
   final L10n strings;
   final List<Course> courses;
-  final Map<String, String> picks;
+  final Map<String, List<String>> picks;
   final String? expandedCode;
   final TextEditingController search;
   final ValueChanged<String> onExpand;
@@ -61,13 +61,13 @@ class CourseBrowser extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final course = courses[index];
                       final expanded = course.code == expandedCode;
-                      final picked = picks.containsKey(course.code);
+                      final pickedIds = picks[course.code] ?? const <String>[];
                       return _CourseTile(
                         course: course,
                         strings: strings,
                         expanded: expanded,
-                        picked: picked,
-                        pickedSection: picks[course.code],
+                        picked: pickedIds.isNotEmpty,
+                        pickedSections: pickedIds,
                         onExpand: () => onExpand(expanded ? '' : course.code),
                         onSection: (section) => onSection(course, section),
                         onOpenOutline: course.outline.isEmpty ? null : () => onOpenOutline(course.outline),
@@ -87,7 +87,7 @@ class _CourseTile extends StatelessWidget {
     required this.strings,
     required this.expanded,
     required this.picked,
-    required this.pickedSection,
+    required this.pickedSections,
     required this.onExpand,
     required this.onSection,
     required this.onOpenOutline,
@@ -97,7 +97,7 @@ class _CourseTile extends StatelessWidget {
   final L10n strings;
   final bool expanded;
   final bool picked;
-  final String? pickedSection;
+  final List<String> pickedSections;
   final VoidCallback onExpand;
   final ValueChanged<Section> onSection;
   final VoidCallback? onOpenOutline;
@@ -159,8 +159,7 @@ class _CourseTile extends StatelessWidget {
               _SectionRow(
                 section: section,
                 strings: strings,
-                selected: pickedSection == section.id,
-                replaces: pickedSection != null && pickedSection != section.id,
+                selected: pickedSections.contains(section.id),
                 onPressed: () => onSection(section),
               ),
             const SizedBox(height: 8),
@@ -194,14 +193,12 @@ class _SectionRow extends StatelessWidget {
     required this.section,
     required this.strings,
     required this.selected,
-    required this.replaces,
     required this.onPressed,
   });
 
   final Section section;
   final L10n strings;
   final bool selected;
-  final bool replaces;
   final VoidCallback onPressed;
 
   @override
@@ -209,7 +206,7 @@ class _SectionRow extends StatelessWidget {
     final times = section.meetings
         .map((meeting) => strings.slot(strings.dayMedium(meeting.weekday), meeting.start, meeting.end))
         .join(' · ');
-    final label = selected ? strings.remove : (replaces ? strings.switchTo : strings.add);
+    final label = selected ? strings.remove : strings.add;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
       child: Row(

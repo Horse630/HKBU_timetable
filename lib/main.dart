@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -32,7 +33,7 @@ class _TimetableAppState extends State<TimetableApp> {
   Catalog? _catalog;
   var _loading = true;
   String? _error;
-  final Map<String, String> _picks = {};
+  final Map<String, List<String>> _picks = {};
   final _search = TextEditingController();
   final _boardKey = GlobalKey();
   final _vertical = ScrollController();
@@ -67,12 +68,22 @@ class _TimetableAppState extends State<TimetableApp> {
       final catalog = await Catalog.load();
       if (!mounted) return;
       final saved = _readPicks();
-      saved.removeWhere((code, section) => catalog.byCode[code]?.sectionById(section) == null);
+      final cleaned = <String, List<String>>{};
+      for (final entry in saved.entries) {
+        final course = catalog.byCode[entry.key];
+        if (course == null) continue;
+        final ids = <String>{
+          for (final id in entry.value)
+            if (course.sectionById(id) != null) id,
+        };
+        if (ids.isEmpty) continue;
+        cleaned[entry.key] = (ids.toList()..sort());
+      }
       setState(() {
         _catalog = catalog;
         _picks
           ..clear()
-          ..addAll(saved);
+          ..addAll(cleaned);
         _loading = false;
         _error = null;
       });
@@ -85,23 +96,34 @@ class _TimetableAppState extends State<TimetableApp> {
     }
   }
 
-  Map<String, String> _readPicks() {
+  Map<String, List<String>> _readPicks() {
     final raw = widget.store.getString('hkbu.picks');
     if (raw == null || raw.isEmpty) return {};
     try {
       final list = jsonDecode(raw) as List<dynamic>;
-      return {
-        for (final item in list)
-          if (item is Map && item['code'] is String && item['section'] is String)
-            item['code'] as String: item['section'] as String,
-      };
+      final result = <String, List<String>>{};
+      for (final item in list) {
+        if (item is! Map) continue;
+        final code = item['code'];
+        if (code is! String) continue;
+        final ids = result.putIfAbsent(code, () => []);
+        final sections = item['sections'];
+        if (sections is List) {
+          ids.addAll(sections.whereType<String>());
+        } else if (item['section'] is String) {
+          ids.add(item['section'] as String);
+        }
+      }
+      return result;
     } catch (_) {
       return {};
     }
   }
 
   void _savePicks() {
-    final data = [for (final entry in _picks.entries) {'code': entry.key, 'section': entry.value}];
+    final data = [
+      for (final entry in _picks.entries) {'code': entry.key, 'sections': entry.value},
+    ];
     widget.store.setString('hkbu.picks', jsonEncode(data));
   }
 
@@ -112,17 +134,32 @@ class _TimetableAppState extends State<TimetableApp> {
 
   void _toggleSection(Course course, Section section) {
     setState(() {
-      if (_picks[course.code] == section.id) {
+      final current = List<String>.from(_picks[course.code] ?? const []);
+      if (current.contains(section.id)) {
+        current.remove(section.id);
+      } else {
+        current.add(section.id);
+        current.sort();
+      }
+      if (current.isEmpty) {
         _picks.remove(course.code);
       } else {
-        _picks[course.code] = section.id;
+        _picks[course.code] = current;
       }
     });
     _savePicks();
   }
 
-  void _remove(String code) {
-    setState(() => _picks.remove(code));
+  void _removeSection(String code, String sectionId) {
+    setState(() {
+      final current = List<String>.from(_picks[code] ?? const []);
+      current.remove(sectionId);
+      if (current.isEmpty) {
+        _picks.remove(code);
+      } else {
+        _picks[code] = current;
+      }
+    });
     _savePicks();
   }
 
@@ -145,22 +182,41 @@ class _TimetableAppState extends State<TimetableApp> {
 
   Future<void> _download() async {
     final boundary = _boardKey.currentContext?.findRenderObject();
-    if (boundary is! RenderRepaintBoundary) return;
+    if (boundary is! RenderRepaintBoundary || !mounted) return;
     setState(() => _downloading = true);
     try {
-      final image = await boundary.toImage(pixelRatio: 3);
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      image.dispose();
-      if (data == null) throw StateError('empty image');
-      savePng(data.buffer.asUint8List(), 'hkbu-timetable.png');
+      final bytes = await _capturePng(boundary);
+      final filename = timetablePngName(DateTime.now());
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.downloaded)));
+      if (savesPngWithShareSheet) {
+        presentPng(bytes, filename, hint: strings.saveImageHint, saveLabel: strings.saveToPhotos, closeLabel: strings.close);
+      } else {
+        savePng(bytes, filename);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.downloaded)));
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.downloadFailed)));
     } finally {
       if (mounted) setState(() => _downloading = false);
     }
+  }
+
+  Future<Uint8List> _capturePng(RenderRepaintBoundary boundary) async {
+    final shortSide = MediaQuery.sizeOf(context).shortestSide;
+    final ratios = shortSide < 700 ? const [2.0, 1.0] : const [3.0, 2.0, 1.0];
+    Object? lastError;
+    for (final ratio in ratios) {
+      try {
+        final image = await boundary.toImage(pixelRatio: ratio);
+        final data = await image.toByteData(format: ui.ImageByteFormat.png);
+        image.dispose();
+        if (data != null && data.lengthInBytes > 0) return data.buffer.asUint8List();
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError ?? StateError('empty image');
   }
 
   void _showBlock(GridBlock block) {
@@ -187,7 +243,7 @@ class _TimetableAppState extends State<TimetableApp> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              _remove(block.course.code);
+              _removeSection(block.course.code, block.section.id);
             },
             child: Text(strings.remove),
           ),
@@ -282,7 +338,7 @@ class _TimetableAppState extends State<TimetableApp> {
       boardKey: _boardKey,
       vertical: _vertical,
       horizontal: _horizontal,
-      onRemove: _remove,
+      onRemove: _removeSection,
       onBlockTap: _showBlock,
     );
 
@@ -343,6 +399,27 @@ class _Header extends StatelessWidget {
                     children: [
                       Text(strings.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
                       Text(strings.semester, style: const TextStyle(color: Color(0xFFD6E4F0), fontSize: 13)),
+                      const SizedBox(height: 2),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        children: [
+                          Text(strings.credit, style: const TextStyle(color: Color(0xFFD6E4F0), fontSize: 12)),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () => openExternal('mailto:${strings.creditEmail}'),
+                            child: Text(
+                              strings.creditEmail,
+                              style: const TextStyle(fontSize: 12, decoration: TextDecoration.underline),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -432,7 +509,7 @@ class _Board extends StatelessWidget {
   });
 
   final L10n strings;
-  final Map<String, String> picks;
+  final Map<String, List<String>> picks;
   final Catalog catalog;
   final List<GridBlock> blocks;
   final List<Clash> clashes;
@@ -440,7 +517,7 @@ class _Board extends StatelessWidget {
   final GlobalKey boardKey;
   final ScrollController vertical;
   final ScrollController horizontal;
-  final ValueChanged<String> onRemove;
+  final void Function(String code, String sectionId) onRemove;
   final ValueChanged<GridBlock> onBlockTap;
 
   @override
@@ -449,7 +526,8 @@ class _Board extends StatelessWidget {
     final units = entries.fold<double>(0, (sum, entry) => sum + (catalog.byCode[entry.key]?.units ?? 0));
     final unscheduled = [
       for (final entry in entries)
-        if (catalog.byCode[entry.key]?.sectionById(entry.value)?.hasTime == false) '${entry.key} (${entry.value})',
+        for (final id in entry.value)
+          if (catalog.byCode[entry.key]?.sectionById(id)?.hasTime == false) '${entry.key} ($id)',
     ];
 
     return Column(
@@ -483,11 +561,12 @@ class _Board extends StatelessWidget {
                       runSpacing: 8,
                       children: [
                         for (final entry in entries)
-                          InputChip(
-                            label: Text('${entry.key} (${entry.value})'),
-                            deleteButtonTooltipMessage: strings.remove,
-                            onDeleted: () => onRemove(entry.key),
-                          ),
+                          for (final sectionId in entry.value)
+                            InputChip(
+                              label: Text('${entry.key} ($sectionId)'),
+                              deleteButtonTooltipMessage: strings.remove,
+                              onDeleted: () => onRemove(entry.key, sectionId),
+                            ),
                       ],
                     ),
                   ],

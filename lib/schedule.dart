@@ -1,5 +1,7 @@
 import 'models.dart';
 
+bool _sameClass(GridBlock a, GridBlock b) => a.course.code == b.course.code && a.section.id == b.section.id;
+
 class GridBlock {
   const GridBlock({
     required this.course,
@@ -26,23 +28,26 @@ class Clash {
   final int weekday;
 }
 
-List<GridBlock> layoutBlocks(Catalog catalog, Map<String, String> picks) {
+List<GridBlock> layoutBlocks(Catalog catalog, Map<String, List<String>> picks) {
   final items = <GridBlock>[];
   for (final entry in picks.entries) {
     final course = catalog.byCode[entry.key];
-    final section = course?.sectionById(entry.value);
-    if (course == null || section == null) continue;
-    for (final meeting in section.meetings) {
-      items.add(
-        GridBlock(
-          course: course,
-          section: section,
-          meeting: meeting,
-          lane: 0,
-          laneCount: 1,
-          conflict: false,
-        ),
-      );
+    if (course == null) continue;
+    for (final sectionId in entry.value) {
+      final section = course.sectionById(sectionId);
+      if (section == null) continue;
+      for (final meeting in section.meetings) {
+        items.add(
+          GridBlock(
+            course: course,
+            section: section,
+            meeting: meeting,
+            lane: 0,
+            laneCount: 1,
+            conflict: false,
+          ),
+        );
+      }
     }
   }
 
@@ -73,7 +78,7 @@ List<GridBlock> layoutBlocks(Catalog catalog, Map<String, String> picks) {
       final item = dayItems[index];
       final conflict = dayItems.any(
         (other) =>
-            other != item &&
+            !_sameClass(other, item) &&
             rangesOverlap(
               item.meeting.startMinute,
               item.meeting.endMinute,
@@ -103,11 +108,13 @@ List<Clash> findClashes(List<GridBlock> blocks) {
     for (var j = i + 1; j < blocks.length; j++) {
       final a = blocks[i];
       final b = blocks[j];
+      if (_sameClass(a, b)) continue;
       if (a.meeting.weekday != b.meeting.weekday) continue;
       if (!rangesOverlap(a.meeting.startMinute, a.meeting.endMinute, b.meeting.startMinute, b.meeting.endMinute)) {
         continue;
       }
-      final key = '${a.course.code}|${b.course.code}|${a.meeting.weekday}';
+      final names = ['${a.course.code} (${a.section.id})', '${b.course.code} (${b.section.id})']..sort();
+      final key = '${names[0]}|${names[1]}|${a.meeting.weekday}';
       if (!seen.add(key)) continue;
       clashes.add(
         Clash(
