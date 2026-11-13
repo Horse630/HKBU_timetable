@@ -94,8 +94,30 @@ class L10n {
   String get reviewsFailed => zh ? '評價暫時載入唔到。請重新整理頁面。' : 'Reviews could not be loaded. Refresh the page.';
 
   String get reviewsSource => zh
-      ? '評價來自公開試算表。重新載入頁面後會看到新的意見。'
-      : 'Reviews come from a public spreadsheet. Reload the page to see new comments.';
+      ? '評價每次開頁都即時從公開試算表讀取，不是寫死在網站裡。'
+      : 'Reviews are read live from the public spreadsheet each time you open the page.';
+
+  String get addReview => zh ? '寫評價' : 'Add a review';
+
+  String get reviewCode => zh ? '科目編號' : 'Course code';
+
+  String get reviewCodeHint => zh ? '例如 ABCD0000' : 'Example ABCD0000';
+
+  String get reviewTitleField => zh ? '科目名稱（可選）' : 'Course title (optional)';
+
+  String get reviewLecturerField => zh ? '講師（可選）' : 'Lecturer (optional)';
+
+  String get sendReview => zh ? '送到評價表' : 'Send to the sheet';
+
+  String get sendingReview => zh ? '正在送出…' : 'Sending…';
+
+  String get reviewSent => zh
+      ? '已送到 Google 表單。幾秒後會出現在上面的圓餅圖，如果未見到就重新載入頁面。'
+      : 'Sent to the Google Form. It will appear in the chart in a few seconds. Reload the page if it does not.';
+
+  String get reviewSendFailed => zh ? '送出失敗，請再試一次。' : 'Could not send the review. Please try again.';
+
+  String get reviewRequired => zh ? '請填科目編號、推薦與否，以及意見。' : 'Enter the course code, a recommendation, and a comment.';
 
   String get recommendVote => 'Recommend｜推薦';
 

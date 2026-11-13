@@ -15,6 +15,7 @@ class CourseBrowser extends StatelessWidget {
     required this.search,
     required this.reviews,
     required this.reviewsFailed,
+    required this.onSubmitReview,
     required this.onExpand,
     required this.onSection,
     required this.onOpenOutline,
@@ -27,6 +28,7 @@ class CourseBrowser extends StatelessWidget {
   final TextEditingController search;
   final ReviewBook? reviews;
   final bool reviewsFailed;
+  final Future<void> Function(ReviewDraft draft) onSubmitReview;
   final ValueChanged<String> onExpand;
   final void Function(Course course, Section section) onSection;
   final ValueChanged<String> onOpenOutline;
@@ -76,6 +78,7 @@ class CourseBrowser extends StatelessWidget {
                         pickedSections: pickedIds,
                         reviews: reviews,
                         reviewsFailed: reviewsFailed,
+                        onSubmitReview: onSubmitReview,
                         onExpand: () => onExpand(expanded ? '' : course.code),
                         onSection: (section) => onSection(course, section),
                         onOpenOutline: course.outline.isEmpty ? null : () => onOpenOutline(course.outline),
@@ -98,6 +101,7 @@ class _CourseTile extends StatelessWidget {
     required this.pickedSections,
     required this.reviews,
     required this.reviewsFailed,
+    required this.onSubmitReview,
     required this.onExpand,
     required this.onSection,
     required this.onOpenOutline,
@@ -110,6 +114,7 @@ class _CourseTile extends StatelessWidget {
   final List<String> pickedSections;
   final ReviewBook? reviews;
   final bool reviewsFailed;
+  final Future<void> Function(ReviewDraft draft) onSubmitReview;
   final VoidCallback onExpand;
   final ValueChanged<Section> onSection;
   final VoidCallback? onOpenOutline;
@@ -174,6 +179,9 @@ class _CourseTile extends StatelessWidget {
               rows: reviews?.of(course.code) ?? const [],
               loading: reviews == null && !reviewsFailed,
               failed: reviewsFailed && reviews == null,
+              courseCode: course.code,
+              courseTitle: course.displayTitle(strings.zh),
+              onSubmit: onSubmitReview,
             ),
             if (onOpenOutline != null)
               Align(

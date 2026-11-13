@@ -14,12 +14,18 @@ class CourseReviews extends StatelessWidget {
     required this.rows,
     required this.loading,
     required this.failed,
+    required this.courseCode,
+    required this.courseTitle,
+    required this.onSubmit,
   });
 
   final L10n strings;
   final List<CourseReview> rows;
   final bool loading;
   final bool failed;
+  final String courseCode;
+  final String courseTitle;
+  final Future<void> Function(ReviewDraft draft) onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +39,14 @@ class CourseReviews extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: _body(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _body(),
+              const SizedBox(height: 8),
+              _AddReview(strings: strings, courseCode: courseCode, courseTitle: courseTitle, onSubmit: onSubmit),
+            ],
+          ),
         ),
       ),
     );
@@ -56,6 +69,214 @@ class CourseReviews extends StatelessWidget {
       return Text(strings.noReviews, style: const TextStyle(color: Color(0xFF667085), fontSize: 13, height: 1.35));
     }
     return _ReviewBody(strings: strings, rows: rows);
+  }
+}
+
+class _AddReview extends StatefulWidget {
+  const _AddReview({
+    required this.strings,
+    required this.courseCode,
+    required this.courseTitle,
+    required this.onSubmit,
+  });
+
+  final L10n strings;
+  final String courseCode;
+  final String courseTitle;
+  final Future<void> Function(ReviewDraft draft) onSubmit;
+
+  @override
+  State<_AddReview> createState() => _AddReviewState();
+}
+
+class _AddReviewState extends State<_AddReview> {
+  var _open = false;
+  var _sending = false;
+  var _sent = false;
+  var _error = false;
+  var _missing = false;
+  ReviewVote? _vote;
+  late final TextEditingController _code;
+  late final TextEditingController _title;
+  late final TextEditingController _lecturer;
+  late final TextEditingController _comment;
+
+  @override
+  void initState() {
+    super.initState();
+    _code = TextEditingController(text: widget.courseCode);
+    _title = TextEditingController(text: widget.courseTitle);
+    _lecturer = TextEditingController();
+    _comment = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _code.dispose();
+    _title.dispose();
+    _lecturer.dispose();
+    _comment.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final vote = _vote;
+    if (normalizeCourseCode(_code.text).isEmpty || vote == null || _comment.text.trim().isEmpty) {
+      setState(() => _missing = true);
+      return;
+    }
+    setState(() {
+      _sending = true;
+      _error = false;
+      _missing = false;
+    });
+    try {
+      await widget.onSubmit(
+        ReviewDraft(
+          code: _code.text,
+          title: _title.text,
+          lecturer: _lecturer.text,
+          vote: vote,
+          comment: _comment.text,
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _sent = true;
+        _open = false;
+        _comment.clear();
+        _lecturer.clear();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _error = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_sent) Text(strings.reviewSent, style: const TextStyle(color: Color(0xFF146C36), fontSize: 12, height: 1.35)),
+        if (!_open)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
+              onPressed: _sending
+                  ? null
+                  : () => setState(() {
+                      _open = true;
+                      _sent = false;
+                    }),
+              child: Text(strings.addReview),
+            ),
+          )
+        else ...[
+          TextField(
+            controller: _code,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              labelText: strings.reviewCode,
+              hintText: strings.reviewCodeHint,
+              isDense: true,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _title,
+            decoration: InputDecoration(labelText: strings.reviewTitleField, isDense: true, border: const OutlineInputBorder()),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _lecturer,
+            decoration: InputDecoration(labelText: strings.reviewLecturerField, isDense: true, border: const OutlineInputBorder()),
+          ),
+          const SizedBox(height: 8),
+          _VoteButton(
+            label: strings.recommendVote,
+            selected: _vote == ReviewVote.recommend,
+            color: const Color(0xFF146C36),
+            fill: const Color(0xFFE5F6EC),
+            onPressed: () => setState(() => _vote = ReviewVote.recommend),
+          ),
+          const SizedBox(height: 6),
+          _VoteButton(
+            label: strings.notRecommendVote,
+            selected: _vote == ReviewVote.notRecommend,
+            color: const Color(0xFFB42318),
+            fill: const Color(0xFFFDECEC),
+            onPressed: () => setState(() => _vote = ReviewVote.notRecommend),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _comment,
+            minLines: 3,
+            maxLines: 6,
+            decoration: InputDecoration(labelText: strings.commentLabel, isDense: true, border: const OutlineInputBorder()),
+          ),
+          if (_missing) ...[
+            const SizedBox(height: 6),
+            Text(strings.reviewRequired, style: const TextStyle(color: Color(0xFFB42318), fontSize: 12, height: 1.35)),
+          ],
+          if (_error) ...[
+            const SizedBox(height: 6),
+            Text(strings.reviewSendFailed, style: const TextStyle(color: Color(0xFFB42318), fontSize: 12, height: 1.35)),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton(
+                onPressed: _sending ? null : () => setState(() => _open = false),
+                child: Text(strings.cancel),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: _sending ? null : _send,
+                child: Text(_sending ? strings.sendingReview : strings.sendReview),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _VoteButton extends StatelessWidget {
+  const _VoteButton({
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.fill,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final Color color;
+  final Color fill;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        backgroundColor: selected ? fill : Colors.white,
+        side: BorderSide(color: selected ? color : const Color(0xFFD0D5DD)),
+        alignment: Alignment.centerLeft,
+      ),
+      onPressed: onPressed,
+      child: Text(label),
+    );
   }
 }
 

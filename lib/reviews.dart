@@ -3,6 +3,12 @@ import 'reviews_fetch_stub.dart' if (dart.library.html) 'reviews_fetch_web.dart'
 const reviewSheetCsvUrl =
     'https://docs.google.com/spreadsheets/d/1B7BvLKzICgBnusgDYfi0BGWnxypEjLL89k_SXT8D6yU/export?format=csv&gid=1117900362';
 
+const reviewFormResponseUrl =
+    'https://docs.google.com/forms/d/e/1FAIpQLSfmmEvZT7l2RZzD_Y1tIIVEasAL_p3QVkuLb-_FKe_2SKiLMQ/formResponse';
+
+const recommendVerdict = 'Recommend｜推薦';
+const notRecommendVerdict = 'Not Recommend｜不推薦';
+
 enum ReviewVote { recommend, notRecommend, unknown }
 
 class CourseReview {
@@ -115,10 +121,46 @@ class ReviewBook {
   }
 }
 
+class ReviewDraft {
+  const ReviewDraft({
+    required this.code,
+    required this.title,
+    required this.lecturer,
+    required this.vote,
+    required this.comment,
+  });
+
+  final String code;
+  final String title;
+  final String lecturer;
+  final ReviewVote vote;
+  final String comment;
+
+  Map<String, String> formFields() {
+    return {
+      'entry.875515428': normalizeCourseCode(code),
+      'entry.20836144': title.trim(),
+      'entry.1002790793': lecturer.trim(),
+      'entry.1026089525': vote == ReviewVote.recommend ? recommendVerdict : notRecommendVerdict,
+      'entry.452007492': comment.trim(),
+      'fvv': '1',
+      'pageHistory': '0',
+    };
+  }
+}
+
 Future<ReviewBook> loadReviewBook() async {
   final url = '$reviewSheetCsvUrl&cb=${DateTime.now().millisecondsSinceEpoch}';
   final csv = await reviews_fetch.fetchReviewsCsv(url);
   return ReviewBook.parse(csv);
+}
+
+Future<void> submitReview(ReviewDraft draft) {
+  final fields = draft.formFields();
+  if (fields['entry.875515428']!.isEmpty || fields['entry.452007492']!.isEmpty || draft.vote == ReviewVote.unknown) {
+    throw ArgumentError('A review needs a course code, a recommendation, and a comment.');
+  }
+  return reviews_fetch.submitReviewForm(reviewFormResponseUrl, fields);
 }
 
 String normalizeCourseCode(String value) => value.replaceAll(RegExp(r'\s+'), '').toUpperCase();

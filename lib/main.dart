@@ -101,6 +101,12 @@ class _TimetableAppState extends State<TimetableApp> {
     }
   }
 
+  Future<void> _submitReview(ReviewDraft draft) async {
+    await submitReview(draft);
+    await Future<void>.delayed(const Duration(seconds: 3));
+    await _loadReviews();
+  }
+
   Future<void> _loadReviews() async {
     try {
       final book = await loadReviewBook();
@@ -345,6 +351,7 @@ class _TimetableAppState extends State<TimetableApp> {
       search: _search,
       reviews: _reviews,
       reviewsFailed: _reviewsFailed,
+      onSubmitReview: _submitReview,
       onExpand: (code) => setState(() => _expanded = code),
       onSection: _toggleSection,
       onOpenOutline: openExternal,
