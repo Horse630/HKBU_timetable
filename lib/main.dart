@@ -37,6 +37,7 @@ class _TimetableAppState extends State<TimetableApp> {
   final Map<String, List<String>> _picks = {};
   final _search = TextEditingController();
   final _boardKey = GlobalKey();
+  final _navigatorKey = GlobalKey<NavigatorState>();
   final _vertical = ScrollController();
   final _horizontal = ScrollController();
   var _query = '';
@@ -188,20 +189,27 @@ class _TimetableAppState extends State<TimetableApp> {
     _savePicks();
   }
 
+  BuildContext? get _pageContext => _navigatorKey.currentState?.overlay?.context;
+
   Future<void> _clear() async {
+    final pageContext = _pageContext;
+    if (pageContext == null) return;
     final confirmed = await showDialog<bool>(
-      context: context,
+      context: pageContext,
       builder: (context) => AlertDialog(
         title: Text(strings.clearTitle),
         content: Text(strings.clearBody),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text(strings.cancel)),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(strings.confirm)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(strings.clear)),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(_picks.clear);
+    setState(() {
+      _picks.clear();
+      _showTimetable = false;
+    });
     _savePicks();
   }
 
@@ -217,14 +225,20 @@ class _TimetableAppState extends State<TimetableApp> {
         presentPng(bytes, filename, hint: strings.saveImageHint, saveLabel: strings.saveToPhotos, closeLabel: strings.close);
       } else {
         savePng(bytes, filename);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.downloaded)));
+        _showMessage(strings.downloaded);
       }
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.downloadFailed)));
+      _showMessage(strings.downloadFailed);
     } finally {
       if (mounted) setState(() => _downloading = false);
     }
+  }
+
+  void _showMessage(String message) {
+    final pageContext = _pageContext;
+    if (pageContext == null) return;
+    ScaffoldMessenger.of(pageContext).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<Uint8List> _capturePng(RenderRepaintBoundary boundary) async {
@@ -295,6 +309,7 @@ class _TimetableAppState extends State<TimetableApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: strings.title,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

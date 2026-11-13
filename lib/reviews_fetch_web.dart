@@ -32,5 +32,5 @@ Future<void> submitReviewForm(String action, Map<String, String> fields) async {
     );
   }
   form.submit();
-  Future<void>.delayed(const Duration(seconds: 2), form.remove);
+  Future<void>.delayed(const Duration(seconds: 2), () => form.remove());
 }
