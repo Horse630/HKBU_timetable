@@ -273,7 +273,7 @@ class _TimetableAppState extends State<TimetableApp> {
             const SizedBox(height: 8),
             Text(strings.slot(strings.dayLong(meeting.weekday), meeting.start, meeting.end)),
             if (venue != null) Text(venue),
-            if (block.section.instructors.isNotEmpty) Text('${strings.instructor}: ${block.section.instructors.join(', ')}'),
+            for (final name in block.section.instructors) Text('${strings.instructor}: $name'),
             if (block.section.medium.isNotEmpty) Text(strings.medium(block.section.medium)),
           ],
         ),

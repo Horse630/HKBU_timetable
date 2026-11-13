@@ -95,10 +95,6 @@ class L10n {
 
   String get reviewsFailed => zh ? '評價暫時載入唔到。請重新整理頁面。' : 'Reviews could not be loaded. Refresh the page.';
 
-  String get reviewsSource => zh
-      ? '評價每次開頁都即時從公開試算表讀取，不是寫死在網站裡。'
-      : 'Reviews are read live from the public spreadsheet each time you open the page.';
-
   String get addReview => zh ? '寫評價' : 'Add a review';
 
   String get reviewCode => zh ? '科目編號' : 'Course code';

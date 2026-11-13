@@ -273,9 +273,9 @@ class _SectionRow extends StatelessWidget {
               children: [
                 Text(section.id, style: const TextStyle(fontWeight: FontWeight.w700)),
                 Text(times.isEmpty ? strings.noTime : times, style: const TextStyle(fontSize: 13, height: 1.3)),
-                if (section.instructors.isNotEmpty)
+                for (final name in section.instructors)
                   Text(
-                    '${strings.instructor}: ${section.instructors.join(', ')}',
+                    '${strings.instructor}: $name',
                     style: const TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.3),
                   ),
                 if (section.medium.isNotEmpty)

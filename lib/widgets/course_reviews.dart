@@ -7,6 +7,13 @@ import '../download.dart';
 import '../l10n.dart';
 import '../reviews.dart';
 
+final _softButton = TextButton.styleFrom(
+  visualDensity: VisualDensity.compact,
+  backgroundColor: const Color(0xFFE7EEF5),
+  foregroundColor: const Color(0xFF0C3C6E),
+  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+);
+
 class CourseReviews extends StatelessWidget {
   const CourseReviews({
     super.key,
@@ -168,7 +175,7 @@ class _AddReviewState extends State<_AddReview> {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
+              style: _softButton,
               onPressed: _sending
                   ? null
                   : () => setState(() {
@@ -317,12 +324,11 @@ class _ReviewBodyState extends State<_ReviewBody> {
           const SizedBox(height: 6),
           Text(strings.otherVotes(tally.unknown), style: const TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.35)),
         ],
-        const SizedBox(height: 6),
-        Text(strings.reviewsSource, style: const TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.35)),
+        const SizedBox(height: 8),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton(
-            style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
+            style: _softButton,
             onPressed: () => setState(() => _showComments = !_showComments),
             child: Text(_showComments ? strings.hideReviews : strings.showReviews),
           ),
