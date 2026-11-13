@@ -472,9 +472,9 @@ class _Header extends StatelessWidget {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     alignment: Alignment.centerLeft,
                   ),
-                  onPressed: () => openExternal('mailto:${strings.creditEmail}'),
+                  onPressed: () => openExternal(strings.creditInstagramUrl),
                   child: Text(
-                    strings.creditEmail,
+                    strings.creditInstagram,
                     style: const TextStyle(fontSize: 12, decoration: TextDecoration.underline),
                   ),
                 ),

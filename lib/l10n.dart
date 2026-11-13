@@ -9,9 +9,11 @@ class L10n {
 
   String get semester => zh ? '2026–27 年度第二學期' : 'Semester 2, 2026–27';
 
-  String get credit => zh ? '由四年級計算機科學學生 Ma Chun Kit 製作' : 'Made by Ma Chun Kit, a Year 4 Computer Science student';
+  String get credit => zh ? '由四年級計算機科學學生製作' : 'Made by a Year 4 CS student';
 
-  String get creditEmail => '23230215@life.hkbu.edu.hk';
+  String get creditInstagram => 'IG: @hkbu_timetable';
+
+  String get creditInstagramUrl => 'https://www.instagram.com/hkbu_timetable/';
 
   String get searchHint => zh ? '搜尋科目編號或名稱' : 'Search code or title';
 
