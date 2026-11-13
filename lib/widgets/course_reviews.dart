@@ -291,6 +291,7 @@ class _ReviewBody extends StatefulWidget {
 }
 
 class _ReviewBodyState extends State<_ReviewBody> {
+  var _showComments = false;
   var _showAll = false;
 
   @override
@@ -318,17 +319,26 @@ class _ReviewBodyState extends State<_ReviewBody> {
         ],
         const SizedBox(height: 6),
         Text(strings.reviewsSource, style: const TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.35)),
-        const SizedBox(height: 8),
-        for (final review in visible) _ReviewCard(strings: strings, review: review),
-        if (rows.length > 4)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
-              onPressed: () => setState(() => _showAll = !_showAll),
-              child: Text(_showAll ? strings.showFewerReviews : strings.showAllReviews(rows.length)),
-            ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
+            onPressed: () => setState(() => _showComments = !_showComments),
+            child: Text(_showComments ? strings.hideReviews : strings.showReviews),
           ),
+        ),
+        if (_showComments) ...[
+          for (final review in visible) _ReviewCard(strings: strings, review: review),
+          if (rows.length > 4)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: EdgeInsets.zero),
+                onPressed: () => setState(() => _showAll = !_showAll),
+                child: Text(_showAll ? strings.showFewerReviews : strings.showAllReviews(rows.length)),
+              ),
+            ),
+        ],
       ],
     );
   }

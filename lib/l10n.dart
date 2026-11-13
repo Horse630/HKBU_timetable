@@ -133,6 +133,10 @@ class L10n {
 
   String showAllReviews(int count) => zh ? '顯示全部 $count 則' : 'Show all $count';
 
+  String get showReviews => zh ? '顯示評價' : 'Show reviews';
+
+  String get hideReviews => zh ? '收起評價' : 'Hide reviews';
+
   String get showFewerReviews => zh ? '收起' : 'Show less';
 
   String get lecturerLabel => zh ? '講師' : 'Lecturer';
