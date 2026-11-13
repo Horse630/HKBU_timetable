@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../l10n.dart';
 import '../models.dart';
+import '../reviews.dart';
+import 'course_reviews.dart';
 
 class CourseBrowser extends StatelessWidget {
   const CourseBrowser({
@@ -11,6 +13,8 @@ class CourseBrowser extends StatelessWidget {
     required this.picks,
     required this.expandedCode,
     required this.search,
+    required this.reviews,
+    required this.reviewsFailed,
     required this.onExpand,
     required this.onSection,
     required this.onOpenOutline,
@@ -21,6 +25,8 @@ class CourseBrowser extends StatelessWidget {
   final Map<String, List<String>> picks;
   final String? expandedCode;
   final TextEditingController search;
+  final ReviewBook? reviews;
+  final bool reviewsFailed;
   final ValueChanged<String> onExpand;
   final void Function(Course course, Section section) onSection;
   final ValueChanged<String> onOpenOutline;
@@ -68,6 +74,8 @@ class CourseBrowser extends StatelessWidget {
                         expanded: expanded,
                         picked: pickedIds.isNotEmpty,
                         pickedSections: pickedIds,
+                        reviews: reviews,
+                        reviewsFailed: reviewsFailed,
                         onExpand: () => onExpand(expanded ? '' : course.code),
                         onSection: (section) => onSection(course, section),
                         onOpenOutline: course.outline.isEmpty ? null : () => onOpenOutline(course.outline),
@@ -88,6 +96,8 @@ class _CourseTile extends StatelessWidget {
     required this.expanded,
     required this.picked,
     required this.pickedSections,
+    required this.reviews,
+    required this.reviewsFailed,
     required this.onExpand,
     required this.onSection,
     required this.onOpenOutline,
@@ -98,6 +108,8 @@ class _CourseTile extends StatelessWidget {
   final bool expanded;
   final bool picked;
   final List<String> pickedSections;
+  final ReviewBook? reviews;
+  final bool reviewsFailed;
   final VoidCallback onExpand;
   final ValueChanged<Section> onSection;
   final VoidCallback? onOpenOutline;
@@ -106,6 +118,7 @@ class _CourseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final zh = strings.zh;
     final primary = course.displayTitle(zh);
+    final tally = reviews?.tally(course.code);
     final secondary = zh && course.chineseTitle.isNotEmpty
         ? course.title
         : (!zh && course.chineseTitle.isNotEmpty ? course.chineseTitle : null);
@@ -138,6 +151,11 @@ class _CourseTile extends StatelessWidget {
                           strings.courseMeta(formatUnits(course.units), course.sections.length),
                           style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
                         ),
+                        if (tally != null && tally.rated > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: _ReviewBadge(percent: tally.recommendPercent, label: strings.recommendShare(tally.recommendPercent)),
+                          ),
                       ],
                     ),
                   ),
@@ -150,6 +168,13 @@ class _CourseTile extends StatelessWidget {
             if (course.prerequisites.isNotEmpty) _Note(label: strings.prerequisite, text: course.prerequisites.join(' | ')),
             if (course.corequisites.isNotEmpty) _Note(label: strings.corequisite, text: course.corequisites.join(' | ')),
             if (course.targetStudents.isNotEmpty) _Note(label: strings.target, text: course.targetStudents.join(' | ')),
+            CourseReviews(
+              key: ValueKey(course.code),
+              strings: strings,
+              rows: reviews?.of(course.code) ?? const [],
+              loading: reviews == null && !reviewsFailed,
+              failed: reviewsFailed && reviews == null,
+            ),
             if (onOpenOutline != null)
               Align(
                 alignment: Alignment.centerLeft,
@@ -165,6 +190,28 @@ class _CourseTile extends StatelessWidget {
             const SizedBox(height: 8),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ReviewBadge extends StatelessWidget {
+  const _ReviewBadge({required this.percent, required this.label});
+
+  final int percent;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final positive = percent >= 50;
+    final color = positive ? const Color(0xFF146C36) : const Color(0xFFB42318);
+    final fill = positive ? const Color(0xFFE5F6EC) : const Color(0xFFFDECEC);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(99)),
+        child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
       ),
     );
   }

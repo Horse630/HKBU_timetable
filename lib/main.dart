@@ -9,6 +9,7 @@ import 'download.dart';
 import 'key_value_store.dart';
 import 'l10n.dart';
 import 'models.dart';
+import 'reviews.dart';
 import 'schedule.dart';
 import 'storage.dart';
 import 'widgets/course_browser.dart';
@@ -42,6 +43,8 @@ class _TimetableAppState extends State<TimetableApp> {
   var _expanded = '';
   var _downloading = false;
   var _showTimetable = false;
+  ReviewBook? _reviews;
+  var _reviewsFailed = false;
 
   L10n get strings => L10n(_lang);
 
@@ -54,6 +57,7 @@ class _TimetableAppState extends State<TimetableApp> {
       setState(() => _query = _search.text);
     });
     _load();
+    _loadReviews();
   }
 
   @override
@@ -94,6 +98,20 @@ class _TimetableAppState extends State<TimetableApp> {
         _loading = false;
         _error = strings.loadError;
       });
+    }
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      final book = await loadReviewBook();
+      if (!mounted) return;
+      setState(() {
+        _reviews = book;
+        _reviewsFailed = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _reviewsFailed = true);
     }
   }
 
@@ -325,6 +343,8 @@ class _TimetableAppState extends State<TimetableApp> {
       picks: _picks,
       expandedCode: _expanded.isEmpty ? null : _expanded,
       search: _search,
+      reviews: _reviews,
+      reviewsFailed: _reviewsFailed,
       onExpand: (code) => setState(() => _expanded = code),
       onSection: _toggleSection,
       onOpenOutline: openExternal,

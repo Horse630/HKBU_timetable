@@ -80,6 +80,45 @@ class L10n {
 
   String get clearBody => zh ? '時間表會回復空白。' : 'The timetable will be empty.';
 
+  String get reviewsTitle => zh ? '同學評價' : 'Student reviews';
+
+  String reviewCount(int count) {
+    if (zh) return '共 $count 則';
+    return count == 1 ? '1 review' : '$count reviews';
+  }
+
+  String get noReviews => zh ? '這科暫時沒有評價。' : 'No reviews for this course yet.';
+
+  String get reviewsLoading => zh ? '正在載入評價…' : 'Loading reviews…';
+
+  String get reviewsFailed => zh ? '評價暫時載入唔到。請重新整理頁面。' : 'Reviews could not be loaded. Refresh the page.';
+
+  String get reviewsSource => zh
+      ? '評價來自公開試算表。重新載入頁面後會看到新的意見。'
+      : 'Reviews come from a public spreadsheet. Reload the page to see new comments.';
+
+  String get recommendVote => 'Recommend｜推薦';
+
+  String get notRecommendVote => 'Not Recommend｜不推薦';
+
+  String recommendShare(int percent) => zh ? '推薦 $percent%' : 'Recommend $percent%';
+
+  String get unknownVote => zh ? '未標明' : 'Unspecified';
+
+  String otherVotes(int count) => zh ? '另有 $count 則未標明推薦或不推薦。' : '$count reviews did not choose recommend or not.';
+
+  String showAllReviews(int count) => zh ? '顯示全部 $count 則' : 'Show all $count';
+
+  String get showFewerReviews => zh ? '收起' : 'Show less';
+
+  String get lecturerLabel => zh ? '講師' : 'Lecturer';
+
+  String get commentLabel => zh ? '意見' : 'Comment';
+
+  String get reviewCourse => zh ? '科目' : 'Course';
+
+  String get notProvided => zh ? '未填' : 'Not filled in';
+
   String get outline => zh ? '課程大綱' : 'Outline';
 
   String get prerequisite => zh ? '先修' : 'Pre-req';
