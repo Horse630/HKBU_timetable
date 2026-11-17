@@ -23,7 +23,7 @@ class L10n {
 
   String subjectsChosen(int count) => zh ? '科目字頭 · $count' : 'Subject · $count';
 
-  String get subjectHint => zh ? '搜尋 COMP、ISEM' : 'Search COMP, ISEM';
+  String get subjectHint => zh ? '搜尋科目字頭' : 'Search a subject';
 
   String get subjectHelp => zh ? '未選時顯示全部科目。可同時選多個字頭。' : 'Shows every subject until you pick one. You can pick more than one.';
 
