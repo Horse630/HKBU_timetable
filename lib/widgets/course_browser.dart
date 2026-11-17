@@ -13,6 +13,14 @@ class CourseBrowser extends StatelessWidget {
     required this.picks,
     required this.expandedCode,
     required this.search,
+    required this.sortByRating,
+    required this.subjects,
+    required this.selectedSubjects,
+    required this.selectedDays,
+    required this.onToggleDay,
+    required this.onToggleSort,
+    required this.onToggleSubject,
+    required this.onClearSubjects,
     required this.reviews,
     required this.reviewsFailed,
     required this.onSubmitReview,
@@ -26,6 +34,14 @@ class CourseBrowser extends StatelessWidget {
   final Map<String, List<String>> picks;
   final String? expandedCode;
   final TextEditingController search;
+  final bool sortByRating;
+  final List<String> subjects;
+  final Set<String> selectedSubjects;
+  final Set<int> selectedDays;
+  final ValueChanged<int> onToggleDay;
+  final VoidCallback onToggleSort;
+  final ValueChanged<String> onToggleSubject;
+  final VoidCallback onClearSubjects;
   final ReviewBook? reviews;
   final bool reviewsFailed;
   final Future<void> Function(ReviewDraft draft) onSubmitReview;
@@ -61,6 +77,63 @@ class CourseBrowser extends StatelessWidget {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _ChoiceButton(
+                      label: strings.sortByRating,
+                      icon: Icons.sort,
+                      selected: sortByRating,
+                      onPressed: onToggleSort,
+                    ),
+                    _ChoiceButton(
+                      label: selectedSubjects.isEmpty ? strings.subjects : strings.subjectsChosen(selectedSubjects.length),
+                      icon: Icons.filter_alt_outlined,
+                      selected: selectedSubjects.isNotEmpty,
+                      onPressed: () => _pickSubjects(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final day in const [1, 2, 3, 4, 5, 6])
+                      _DayButton(
+                        label: strings.dayMedium(day),
+                        selected: selectedDays.contains(day),
+                        onPressed: () => onToggleDay(day),
+                      ),
+                  ],
+                ),
+                if (selectedSubjects.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final subject in (selectedSubjects.toList()..sort()))
+                        InputChip(
+                          label: Text(subject),
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: const Color(0xFFE7EEF5),
+                          labelStyle: const TextStyle(color: Color(0xFF0C3C6E), fontWeight: FontWeight.w700),
+                          deleteIconColor: const Color(0xFF0C3C6E),
+                          onDeleted: () => onToggleSubject(subject),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
           Expanded(
             child: courses.isEmpty
                 ? Center(child: Text(strings.noResults))
@@ -87,6 +160,183 @@ class CourseBrowser extends StatelessWidget {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _pickSubjects(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => _SubjectDialog(
+        strings: strings,
+        subjects: subjects,
+        selected: selectedSubjects,
+        onToggle: onToggleSubject,
+        onClear: onClearSubjects,
+      ),
+    );
+  }
+}
+
+class _DayButton extends StatelessWidget {
+  const _DayButton({required this.label, required this.selected, required this.onPressed});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        minimumSize: const Size(48, 36),
+        backgroundColor: selected ? const Color(0xFF0C3C6E) : const Color(0xFFE7EEF5),
+        foregroundColor: selected ? Colors.white : const Color(0xFF0C3C6E),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      ),
+      onPressed: onPressed,
+      child: Text(label),
+    );
+  }
+}
+
+class _ChoiceButton extends StatelessWidget {
+  const _ChoiceButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        backgroundColor: selected ? const Color(0xFF0C3C6E) : const Color(0xFFE7EEF5),
+        foregroundColor: selected ? Colors.white : const Color(0xFF0C3C6E),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon, size: 16),
+      label: Text(label),
+    );
+  }
+}
+
+class _SubjectDialog extends StatefulWidget {
+  const _SubjectDialog({
+    required this.strings,
+    required this.subjects,
+    required this.selected,
+    required this.onToggle,
+    required this.onClear,
+  });
+
+  final L10n strings;
+  final List<String> subjects;
+  final Set<String> selected;
+  final ValueChanged<String> onToggle;
+  final VoidCallback onClear;
+
+  @override
+  State<_SubjectDialog> createState() => _SubjectDialogState();
+}
+
+class _SubjectDialogState extends State<_SubjectDialog> {
+  final _query = TextEditingController();
+  late final Set<String> _selected = {...widget.selected};
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _query.text.trim().toUpperCase();
+    final shown = q.isEmpty ? widget.subjects : widget.subjects.where((subject) => subject.contains(q)).toList();
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 520),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(widget.strings.subjects, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(widget.strings.subjectHelp, style: const TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.35)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _query,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  hintText: widget.strings.subjectHint,
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final subject in shown)
+                        FilterChip(
+                          label: Text(subject),
+                          selected: _selected.contains(subject),
+                          showCheckmark: false,
+                          selectedColor: const Color(0xFF0C3C6E),
+                          labelStyle: TextStyle(
+                            color: _selected.contains(subject) ? Colors.white : const Color(0xFF0C3C6E),
+                            fontWeight: FontWeight.w700,
+                          ),
+                          onSelected: (_) {
+                            setState(() {
+                              if (!_selected.add(subject)) _selected.remove(subject);
+                            });
+                            widget.onToggle(subject);
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () {
+                            setState(_selected.clear);
+                            widget.onClear();
+                          },
+                    child: Text(widget.strings.clearSubjects),
+                  ),
+                  const Spacer(),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0C3C6E)),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(widget.strings.done),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -170,6 +420,20 @@ class _CourseTile extends StatelessWidget {
             ),
           ),
           if (expanded) ...[
+            if (onOpenOutline != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF0C3C6E),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(40),
+                  ),
+                  onPressed: onOpenOutline,
+                  icon: const Icon(Icons.menu_book, size: 18),
+                  label: Text(strings.outline),
+                ),
+              ),
             if (course.prerequisites.isNotEmpty) _Note(label: strings.prerequisite, text: course.prerequisites.join(' | ')),
             if (course.corequisites.isNotEmpty) _Note(label: strings.corequisite, text: course.corequisites.join(' | ')),
             if (course.targetStudents.isNotEmpty) _Note(label: strings.target, text: course.targetStudents.join(' | ')),
@@ -183,11 +447,6 @@ class _CourseTile extends StatelessWidget {
               courseTitle: course.displayTitle(strings.zh),
               onSubmit: onSubmitReview,
             ),
-            if (onOpenOutline != null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(onPressed: onOpenOutline, child: Text(strings.outline)),
-              ),
             for (final section in course.sections)
               _SectionRow(
                 section: section,

@@ -17,6 +17,20 @@ class L10n {
 
   String get searchHint => zh ? '搜尋科目編號或名稱' : 'Search code or title';
 
+  String get sortByRating => zh ? '按推薦排序' : 'Sort by rating';
+
+  String get subjects => zh ? '科目字頭' : 'Subject';
+
+  String subjectsChosen(int count) => zh ? '科目字頭 · $count' : 'Subject · $count';
+
+  String get subjectHint => zh ? '搜尋 COMP、ISEM' : 'Search COMP, ISEM';
+
+  String get subjectHelp => zh ? '未選時顯示全部科目。可同時選多個字頭。' : 'Shows every subject until you pick one. You can pick more than one.';
+
+  String get clearSubjects => zh ? '清除選擇' : 'Clear selection';
+
+  String get done => zh ? '完成' : 'Done';
+
   String get add => zh ? '加入' : 'Add';
 
   String get remove => zh ? '移除' : 'Remove';
@@ -143,7 +157,7 @@ class L10n {
 
   String get notProvided => zh ? '未填' : 'Not filled in';
 
-  String get outline => zh ? '課程大綱' : 'Outline';
+  String get outline => zh ? '課程大綱' : 'Course outline';
 
   String get prerequisite => zh ? '先修' : 'Pre-req';
 

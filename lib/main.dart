@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import 'course_filter.dart';
 import 'download.dart';
 import 'key_value_store.dart';
 import 'l10n.dart';
@@ -42,6 +43,9 @@ class _TimetableAppState extends State<TimetableApp> {
   final _horizontal = ScrollController();
   var _query = '';
   var _expanded = '';
+  var _sortByRating = false;
+  final Set<String> _subjects = {};
+  final Set<int> _days = {};
   var _downloading = false;
   var _showTimetable = false;
   ReviewBook? _reviews;
@@ -258,52 +262,49 @@ class _TimetableAppState extends State<TimetableApp> {
     throw lastError ?? StateError('empty image');
   }
 
-  void _showBlock(GridBlock block) {
-    final meeting = block.meeting;
-    final venue = meeting.venue.isEmpty ? null : meeting.venue;
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${block.course.code} (${block.section.id})'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(block.course.displayTitle(strings.zh)),
-            const SizedBox(height: 8),
-            Text(strings.slot(strings.dayLong(meeting.weekday), meeting.start, meeting.end)),
-            if (venue != null) Text(venue),
-            for (final name in block.section.instructors) Text('${strings.instructor}: $name'),
-            if (block.section.medium.isNotEmpty) Text(strings.medium(block.section.medium)),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(strings.close)),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _removeSection(block.course.code, block.section.id);
-            },
-            child: Text(strings.remove),
-          ),
-        ],
-      ),
+  void _focusCourse(GridBlock block) {
+    final code = block.course.code;
+    _search.value = TextEditingValue(
+      text: code,
+      selection: TextSelection.collapsed(offset: code.length),
     );
+    setState(() {
+      _subjects.clear();
+      _days.clear();
+      _expanded = code;
+      _showTimetable = false;
+    });
+  }
+
+  void _toggleDay(int day) {
+    setState(() {
+      if (!_days.add(day)) _days.remove(day);
+    });
+  }
+
+  void _toggleSubject(String subject) {
+    setState(() {
+      if (!_subjects.add(subject)) _subjects.remove(subject);
+    });
+  }
+
+  List<String> get _allSubjects {
+    final catalog = _catalog;
+    if (catalog == null) return const [];
+    return {for (final course in catalog.courses) subjectOf(course.code)}.toList()..sort();
   }
 
   List<Course> get _visible {
     final catalog = _catalog;
     if (catalog == null) return const [];
-    final query = _query.trim().toLowerCase();
-    if (query.isEmpty) return catalog.courses;
-    return catalog.courses
-        .where(
-          (course) =>
-              course.code.toLowerCase().contains(query) ||
-              course.title.toLowerCase().contains(query) ||
-              course.chineseTitle.toLowerCase().contains(query),
-        )
-        .toList();
+    return visibleCourses(
+      courses: catalog.courses,
+      query: _query,
+      subjects: _subjects,
+      days: _days,
+      sortByRating: _sortByRating,
+      reviews: _reviews,
+    );
   }
 
   @override
@@ -364,6 +365,14 @@ class _TimetableAppState extends State<TimetableApp> {
       picks: _picks,
       expandedCode: _expanded.isEmpty ? null : _expanded,
       search: _search,
+      sortByRating: _sortByRating,
+      subjects: _allSubjects,
+      selectedSubjects: _subjects,
+      selectedDays: _days,
+      onToggleDay: _toggleDay,
+      onToggleSort: () => setState(() => _sortByRating = !_sortByRating),
+      onToggleSubject: _toggleSubject,
+      onClearSubjects: () => setState(_subjects.clear),
       reviews: _reviews,
       reviewsFailed: _reviewsFailed,
       onSubmitReview: _submitReview,
@@ -382,7 +391,7 @@ class _TimetableAppState extends State<TimetableApp> {
       vertical: _vertical,
       horizontal: _horizontal,
       onRemove: _removeSection,
-      onBlockTap: _showBlock,
+      onBlockTap: _focusCourse,
     );
 
     return LayoutBuilder(
