@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../course_filter.dart';
 import '../l10n.dart';
 import '../models.dart';
 import '../reviews.dart';
@@ -19,6 +20,8 @@ class CourseBrowser extends StatelessWidget {
     required this.selectedDays,
     required this.noExam,
     required this.noTest,
+    required this.avoidClashes,
+    required this.busy,
     required this.onToggleNoExam,
     required this.onToggleNoTest,
     required this.onToggleDay,
@@ -31,7 +34,6 @@ class CourseBrowser extends StatelessWidget {
     required this.onExpand,
     required this.onSection,
     required this.onOpenOutline,
-    required this.onAddCustom,
   });
 
   final L10n strings;
@@ -45,6 +47,8 @@ class CourseBrowser extends StatelessWidget {
   final Set<int> selectedDays;
   final bool noExam;
   final bool noTest;
+  final bool avoidClashes;
+  final List<BusySpan> busy;
   final VoidCallback onToggleNoExam;
   final VoidCallback onToggleNoTest;
   final ValueChanged<int> onToggleDay;
@@ -57,7 +61,6 @@ class CourseBrowser extends StatelessWidget {
   final ValueChanged<String> onExpand;
   final void Function(Course course, Section section) onSection;
   final ValueChanged<String> onOpenOutline;
-  final VoidCallback onAddCustom;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +103,6 @@ class CourseBrowser extends StatelessWidget {
             onToggleSort: onToggleSort,
             onToggleSubject: onToggleSubject,
             onPickSubjects: () => _pickSubjects(context),
-            onAddCustom: onAddCustom,
           ),
           Expanded(
             child: courses.isEmpty
@@ -113,6 +115,11 @@ class CourseBrowser extends StatelessWidget {
                       final pickedIds = picks[course.code] ?? const <String>[];
                       return _CourseTile(
                         course: course,
+                        sections: openSections(
+                          course,
+                          avoidClashes: avoidClashes,
+                          busy: busy,
+                        ),
                         strings: strings,
                         expanded: expanded,
                         picked: pickedIds.isNotEmpty,
@@ -162,7 +169,6 @@ class _FilterPanel extends StatefulWidget {
     required this.onToggleSort,
     required this.onToggleSubject,
     required this.onPickSubjects,
-    required this.onAddCustom,
   });
 
   final L10n strings;
@@ -177,7 +183,6 @@ class _FilterPanel extends StatefulWidget {
   final VoidCallback onToggleSort;
   final ValueChanged<String> onToggleSubject;
   final VoidCallback onPickSubjects;
-  final VoidCallback onAddCustom;
 
   @override
   State<_FilterPanel> createState() => _FilterPanelState();
@@ -274,13 +279,6 @@ class _FilterPanelState extends State<_FilterPanel> {
                         onPressed: () => widget.onToggleDay(day),
                       ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                _ChoiceButton(
-                  label: strings.addOwnClass,
-                  icon: Icons.add,
-                  selected: false,
-                  onPressed: widget.onAddCustom,
                 ),
                 if (widget.selectedSubjects.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -508,6 +506,7 @@ class _SubjectDialogState extends State<_SubjectDialog> {
 class _CourseTile extends StatelessWidget {
   const _CourseTile({
     required this.course,
+    required this.sections,
     required this.strings,
     required this.expanded,
     required this.picked,
@@ -521,6 +520,7 @@ class _CourseTile extends StatelessWidget {
   });
 
   final Course course;
+  final List<Section> sections;
   final L10n strings;
   final bool expanded;
   final bool picked;
@@ -577,7 +577,7 @@ class _CourseTile extends StatelessWidget {
                         Text(
                           strings.courseMeta(
                             formatUnits(course.units),
-                            course.sections.length,
+                            sections.length,
                           ),
                           style: const TextStyle(
                             color: Color(0xFF667085),
@@ -655,7 +655,7 @@ class _CourseTile extends StatelessWidget {
               courseTitle: course.displayTitle(strings.zh),
               onSubmit: onSubmitReview,
             ),
-            for (final section in course.sections)
+            for (final section in sections)
               _SectionRow(
                 section: section,
                 strings: strings,

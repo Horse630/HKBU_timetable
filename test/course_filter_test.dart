@@ -52,7 +52,11 @@ void main() {
       noTest: false,
       reviews: reviews,
     );
-    expect(visible.map((course) => course.code), ['BBBB1001', 'AAAA1001', 'CCCC1001']);
+    expect(visible.map((course) => course.code), [
+      'BBBB1001',
+      'AAAA1001',
+      'CCCC1001',
+    ]);
   });
 
   test('day filter keeps courses that meet on any chosen day', () {
@@ -84,39 +88,128 @@ void main() {
       noTest: false,
       reviews: null,
     );
-    expect(both.map((course) => course.code), ['MON1001', 'TUE1001', 'MIX1001']);
+    expect(both.map((course) => course.code), [
+      'MON1001',
+      'TUE1001',
+      'MIX1001',
+    ]);
   });
 
-  test('no exam and no test filters keep only courses the outline confirms', () {
-    final courses = [
-      _course('EXAM1001', hasExam: true, hasTest: true),
-      _course('NONE1001', hasExam: false, hasTest: false),
-      _course('TEST1001', hasExam: false, hasTest: true),
-      _course('UNKNOWN1001'),
-    ];
-    final noExam = visibleCourses(
-      courses: courses,
-      query: '',
-      subjects: const {},
-      days: const {},
-      sortByRating: false,
-      noExam: true,
-      noTest: false,
-      reviews: null,
-    );
-    expect(noExam.map((course) => course.code), ['NONE1001', 'TEST1001']);
+  test(
+    'no exam and no test filters keep only courses the outline confirms',
+    () {
+      final courses = [
+        _course('EXAM1001', hasExam: true, hasTest: true),
+        _course('NONE1001', hasExam: false, hasTest: false),
+        _course('TEST1001', hasExam: false, hasTest: true),
+        _course('UNKNOWN1001'),
+      ];
+      final noExam = visibleCourses(
+        courses: courses,
+        query: '',
+        subjects: const {},
+        days: const {},
+        sortByRating: false,
+        noExam: true,
+        noTest: false,
+        reviews: null,
+      );
+      expect(noExam.map((course) => course.code), ['NONE1001', 'TEST1001']);
 
-    final both = visibleCourses(
-      courses: courses,
+      final both = visibleCourses(
+        courses: courses,
+        query: '',
+        subjects: const {},
+        days: const {},
+        sortByRating: false,
+        noExam: true,
+        noTest: true,
+        reviews: null,
+      );
+      expect(both.map((course) => course.code), ['NONE1001']);
+    },
+  );
+
+  test('avoid clashes hides one section and keeps the other section', () {
+    Meeting slot(String start, String end) {
+      return Meeting(
+        weekday: 1,
+        startMinute: minutesOf(start),
+        endMinute: minutesOf(end),
+        venue: '',
+        day: 'Mon',
+        start: start,
+        end: end,
+      );
+    }
+
+    Section group(String id, String start, String end) {
+      return Section(
+        id: id,
+        instructors: const [],
+        medium: '',
+        meetings: [slot(start, end)],
+      );
+    }
+
+    Course course(String code, List<Section> sections) {
+      return Course(
+        code: code,
+        title: code,
+        chineseTitle: '',
+        units: 3,
+        outline: '',
+        prerequisites: const [],
+        corequisites: const [],
+        targetStudents: const [],
+        sections: sections,
+      );
+    }
+
+    final courseA = course('A', [
+      group('A', '11:30', '12:30'),
+      group('B', '13:30', '14:30'),
+    ]);
+    final courseB = course('B', [group('A', '11:30', '12:30')]);
+    final onlyClash = course('C', [group('A', '11:30', '12:30')]);
+    final busy = [
+      BusySpan(
+        weekday: 1,
+        startMinute: minutesOf('11:30'),
+        endMinute: minutesOf('12:30'),
+        courseCode: 'B',
+        sectionId: 'A',
+      ),
+    ];
+    final visible = visibleCourses(
+      courses: [courseA, courseB, onlyClash],
       query: '',
       subjects: const {},
       days: const {},
       sortByRating: false,
-      noExam: true,
-      noTest: true,
-      reviews: null,
+      noExam: false,
+      noTest: false,
+      avoidClashes: true,
+      busy: busy,
     );
-    expect(both.map((course) => course.code), ['NONE1001']);
+
+    expect(visible.map((item) => item.code), ['A', 'B']);
+    expect(
+      openSections(
+        courseA,
+        avoidClashes: true,
+        busy: busy,
+      ).map((item) => item.id),
+      ['B'],
+    );
+    expect(
+      openSections(
+        courseB,
+        avoidClashes: true,
+        busy: busy,
+      ).map((item) => item.id),
+      ['A'],
+    );
   });
 }
 

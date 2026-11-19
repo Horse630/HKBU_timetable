@@ -31,6 +31,8 @@ class L10n {
 
   String get noTest => zh ? '無測驗' : 'No test';
 
+  String get avoidClashes => zh ? '避開撞堂' : 'Avoid clashes';
+
   String get subjects => zh ? '科目字頭' : 'Subject';
 
   String subjectsChosen(int count) => zh ? '科目字頭 · $count' : 'Subject · $count';

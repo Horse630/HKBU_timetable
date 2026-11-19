@@ -53,6 +53,7 @@ class _TimetableAppState extends State<TimetableApp> {
   final Set<int> _days = {};
   var _noExam = false;
   var _noTest = false;
+  var _avoidClashes = false;
   final List<CustomClass> _custom = [];
   var _showTeachers = false;
   var _exporting = '';
@@ -428,6 +429,7 @@ class _TimetableAppState extends State<TimetableApp> {
       _days.clear();
       _noExam = false;
       _noTest = false;
+      _avoidClashes = false;
       _expanded = code;
       _place = 0;
     });
@@ -436,6 +438,8 @@ class _TimetableAppState extends State<TimetableApp> {
   void _toggleNoExam() => setState(() => _noExam = !_noExam);
 
   void _toggleNoTest() => setState(() => _noTest = !_noTest);
+
+  void _toggleAvoidClashes() => setState(() => _avoidClashes = !_avoidClashes);
 
   void _toggleDay(int day) {
     setState(() {
@@ -468,8 +472,47 @@ class _TimetableAppState extends State<TimetableApp> {
       sortByRating: _sortByRating,
       noExam: _noExam,
       noTest: _noTest,
+      avoidClashes: _avoidClashes,
+      busy: _busySpans(),
       reviews: _reviews,
     );
+  }
+
+  List<BusySpan> _busySpans() {
+    final catalog = _catalog;
+    if (catalog == null) return const [];
+    final spans = <BusySpan>[];
+    void add(String code, String sectionId, List<Meeting> meetings) {
+      for (final meeting in meetings) {
+        spans.add(
+          BusySpan(
+            weekday: meeting.weekday,
+            startMinute: meeting.startMinute,
+            endMinute: meeting.endMinute,
+            courseCode: code,
+            sectionId: sectionId,
+          ),
+        );
+      }
+    }
+
+    for (final entry in _picks.entries) {
+      final course = catalog.byCode[entry.key];
+      if (course == null) continue;
+      for (final id in entry.value) {
+        for (final section in course.sections) {
+          if (section.id != id) continue;
+          add(course.code, section.id, section.meetings);
+        }
+      }
+    }
+    for (final item in _custom) {
+      final course = item.toCourse();
+      for (final section in course.sections) {
+        add(course.code, section.id, section.meetings);
+      }
+    }
+    return spans;
   }
 
   @override
@@ -549,6 +592,8 @@ class _TimetableAppState extends State<TimetableApp> {
       selectedDays: _days,
       noExam: _noExam,
       noTest: _noTest,
+      avoidClashes: _avoidClashes,
+      busy: _busySpans(),
       onToggleNoExam: _toggleNoExam,
       onToggleNoTest: _toggleNoTest,
       onToggleDay: _toggleDay,
@@ -561,7 +606,6 @@ class _TimetableAppState extends State<TimetableApp> {
       onExpand: (code) => setState(() => _expanded = code),
       onSection: _toggleSection,
       onOpenOutline: openExternal,
-      onAddCustom: _addCustom,
     );
     final board = _Board(
       strings: strings,
@@ -579,6 +623,8 @@ class _TimetableAppState extends State<TimetableApp> {
       onRemoveCustom: _removeCustom,
       showTeachers: _showTeachers,
       onToggleTeachers: _toggleTeachers,
+      avoidClashes: _avoidClashes,
+      onToggleAvoidClashes: _toggleAvoidClashes,
       onAddCustom: _addCustom,
     );
     final lecturers = LecturerBrowser(strings: strings, onCourse: _showCourse);
@@ -1003,6 +1049,8 @@ class _Board extends StatelessWidget {
     required this.onRemoveCustom,
     required this.showTeachers,
     required this.onToggleTeachers,
+    required this.avoidClashes,
+    required this.onToggleAvoidClashes,
     required this.onAddCustom,
   });
 
@@ -1021,6 +1069,8 @@ class _Board extends StatelessWidget {
   final ValueChanged<String> onRemoveCustom;
   final bool showTeachers;
   final VoidCallback onToggleTeachers;
+  final bool avoidClashes;
+  final VoidCallback onToggleAvoidClashes;
   final VoidCallback onAddCustom;
 
   @override
@@ -1127,6 +1177,24 @@ class _Board extends StatelessWidget {
                 onPressed: onAddCustom,
                 icon: const Icon(Icons.add, size: 18),
                 label: Text(strings.addOwnClass),
+              ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: avoidClashes
+                      ? const Color(0xFF0C3C6E)
+                      : const Color(0xFFE7EEF5),
+                  foregroundColor: avoidClashes
+                      ? Colors.white
+                      : const Color(0xFF0C3C6E),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                ),
+                onPressed: onToggleAvoidClashes,
+                icon: const Icon(Icons.block, size: 18),
+                label: Text(strings.avoidClashes),
               ),
             ],
           ),

@@ -100,21 +100,23 @@ def cover():
     image = Image.new("RGB", (W, H), NAVY)
     draw = ImageDraw.Draw(image)
     tracked(draw, (72, 78), "HKBU TIMETABLE", font(30, 700), GOLD, 3)
-    draw.text((72, 150), "今次更新了", font=font(92, 700), fill=WHITE)
-    draw.text((72, 280), "選科、講師、桌布，都更好用", font=font(36, 460), fill=SOFT)
+    draw.text((72, 140), "今次更新了", font=font(84, 700), fill=WHITE)
+    draw.text((72, 250), "選科、講師、桌布，都更好用", font=font(32, 460), fill=SOFT)
     items = [
         "選取無考試/測驗科目",
         "按學系看講師",
         "加入自己的課堂",
         "時間表桌布",
         "課堂顯示講師",
+        "避開撞堂班別",
+        "網站瀏覽人數",
     ]
-    y = 400
+    y = 330
     for index, label in enumerate(items, start=1):
-        draw.rounded_rectangle((72, y, W - 72, y + 118), radius=28, fill=DEEP)
-        draw.text((112, y + 30), f"{index:02d}", font=font(40, 700), fill=GOLD)
-        draw.text((230, y + 28), label, font=font(42, 700), fill=WHITE)
-        y += 138
+        draw.rounded_rectangle((72, y, W - 72, y + 96), radius=24, fill=DEEP)
+        draw.text((108, y + 26), f"{index:02d}", font=font(34, 700), fill=GOLD)
+        draw.text((210, y + 24), label, font=font(36, 700), fill=WHITE)
+        y += 110
     draw.text((72, 1248), "@hkbu_timetable", font=font(34, 700), fill=GOLD)
     image.save(OUT / "01-cover.png")
 
@@ -234,6 +236,40 @@ def show_teacher():
     image.save(OUT / "06-show-teacher.png")
 
 
+def avoid_clash():
+    image, draw = card()
+    header(draw, "更新 06", "避開撞堂班別", "只隱藏撞到的那一班", 72)
+    rows = [
+        ("A 科  00001", "11:30–12:30", "隱藏", True),
+        ("A 科  00002", "13:30–14:30", "仍然顯示", False),
+        ("B 科  00001", "11:30–12:30", "已選", False),
+    ]
+    y = 500
+    for code, time, state, hidden in rows:
+        draw.rounded_rectangle((72, y, W - 72, y + 170), radius=28, fill=WHITE)
+        draw.text((108, y + 28), code, font=font(36, 700), fill=MUTED if hidden else INK)
+        draw.text((108, y + 90), time, font=font(32, 500), fill=MUTED if hidden else NAVY)
+        face = font(28, 700)
+        label = state
+        width = text_width(face, label) + 36
+        box = (W - 108 - width, y + 58, W - 108, y + 114)
+        draw.rounded_rectangle(box, radius=16, fill=(253, 236, 236) if hidden else ICE)
+        center_text(draw, box, label, face, (180, 35, 24) if hidden else NAVY)
+        y += 196
+    footer(draw, "撞到的班會收起，其他班還在")
+    image.save(OUT / "07-avoid-clash.png")
+
+
+def visits():
+    image, draw = card()
+    header(draw, "更新 07", "網站瀏覽人數", "頁首看得到有多少人來過", 72)
+    draw.rounded_rectangle((120, 560, W - 120, 1040), radius=36, fill=WHITE)
+    center_text(draw, (120, 640, W - 120, 760), "網站瀏覽人數:", font(40, 700), NAVY)
+    center_text(draw, (120, 760, W - 120, 960), "11,807", font(120, 700), INK)
+    footer(draw, "有人打開網站，數字就會增加")
+    image.save(OUT / "08-visits.png")
+
+
 def main():
     OUT.mkdir(exist_ok=True)
     cover()
@@ -242,6 +278,8 @@ def main():
     custom_class()
     wallpaper()
     show_teacher()
+    avoid_clash()
+    visits()
     print(OUT)
 
 
