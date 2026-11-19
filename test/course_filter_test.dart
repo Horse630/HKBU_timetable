@@ -22,6 +22,8 @@ void main() {
       subjects: {'COMP', 'ISEM'},
       days: const {},
       sortByRating: false,
+      noExam: false,
+      noTest: false,
       reviews: null,
     );
     expect(visible.map((course) => course.code), ['COMP1001', 'ISEM2001']);
@@ -46,6 +48,8 @@ void main() {
       subjects: const {},
       days: const {},
       sortByRating: true,
+      noExam: false,
+      noTest: false,
       reviews: reviews,
     );
     expect(visible.map((course) => course.code), ['BBBB1001', 'AAAA1001', 'CCCC1001']);
@@ -64,6 +68,8 @@ void main() {
       subjects: const {},
       days: {1},
       sortByRating: false,
+      noExam: false,
+      noTest: false,
       reviews: null,
     );
     expect(monday.map((course) => course.code), ['MON1001', 'MIX1001']);
@@ -74,9 +80,43 @@ void main() {
       subjects: const {},
       days: {1, 2},
       sortByRating: false,
+      noExam: false,
+      noTest: false,
       reviews: null,
     );
     expect(both.map((course) => course.code), ['MON1001', 'TUE1001', 'MIX1001']);
+  });
+
+  test('no exam and no test filters keep only courses the outline confirms', () {
+    final courses = [
+      _course('EXAM1001', hasExam: true, hasTest: true),
+      _course('NONE1001', hasExam: false, hasTest: false),
+      _course('TEST1001', hasExam: false, hasTest: true),
+      _course('UNKNOWN1001'),
+    ];
+    final noExam = visibleCourses(
+      courses: courses,
+      query: '',
+      subjects: const {},
+      days: const {},
+      sortByRating: false,
+      noExam: true,
+      noTest: false,
+      reviews: null,
+    );
+    expect(noExam.map((course) => course.code), ['NONE1001', 'TEST1001']);
+
+    final both = visibleCourses(
+      courses: courses,
+      query: '',
+      subjects: const {},
+      days: const {},
+      sortByRating: false,
+      noExam: true,
+      noTest: true,
+      reviews: null,
+    );
+    expect(both.map((course) => course.code), ['NONE1001']);
   });
 }
 
@@ -112,7 +152,7 @@ Course _courseOn(String code, List<int> days) {
   );
 }
 
-Course _course(String code) {
+Course _course(String code, {bool? hasExam, bool? hasTest}) {
   return Course(
     code: code,
     title: code,
@@ -123,5 +163,7 @@ Course _course(String code) {
     corequisites: const [],
     targetStudents: const [],
     sections: const [],
+    hasExam: hasExam,
+    hasTest: hasTest,
   );
 }

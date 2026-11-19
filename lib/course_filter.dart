@@ -13,12 +13,16 @@ List<Course> visibleCourses({
   required Set<String> subjects,
   required Set<int> days,
   required bool sortByRating,
+  required bool noExam,
+  required bool noTest,
   ReviewBook? reviews,
 }) {
   final q = query.trim().toLowerCase();
   final filtered = courses.where((course) {
     if (subjects.isNotEmpty && !subjects.contains(subjectOf(course.code))) return false;
     if (days.isNotEmpty && !meetsOn(course, days)) return false;
+    if (noExam && course.hasExam != false) return false;
+    if (noTest && course.hasTest != false) return false;
     if (q.isEmpty) return true;
     return course.code.toLowerCase().contains(q) ||
         course.title.toLowerCase().contains(q) ||

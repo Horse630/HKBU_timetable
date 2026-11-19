@@ -15,9 +15,21 @@ class L10n {
 
   String get creditInstagramUrl => 'https://www.instagram.com/hkbu_timetable/';
 
+  String visits(String count) => zh ? '網站瀏覽人數: $count' : '$count visits';
+
   String get searchHint => zh ? '搜尋科目編號或名稱' : 'Search code or title';
 
   String get sortByRating => zh ? '按推薦排序' : 'Sort by rating';
+
+  String get hideFilters => zh ? '隱藏' : 'Hide';
+
+  String get showFilters => zh ? '展開' : 'Show';
+
+  String get filterTools => zh ? '篩選工具' : 'Filtering tools';
+
+  String get noExam => zh ? '無考試' : 'No exam';
+
+  String get noTest => zh ? '無測驗' : 'No test';
 
   String get subjects => zh ? '科目字頭' : 'Subject';
 
@@ -25,7 +37,9 @@ class L10n {
 
   String get subjectHint => zh ? '搜尋科目字頭' : 'Search a subject';
 
-  String get subjectHelp => zh ? '未選時顯示全部科目。可同時選多個字頭。' : 'Shows every subject until you pick one. You can pick more than one.';
+  String get subjectHelp => zh
+      ? '未選時顯示全部科目。可同時選多個字頭。'
+      : 'Shows every subject until you pick one. You can pick more than one.';
 
   String get clearSubjects => zh ? '清除選擇' : 'Clear selection';
 
@@ -33,9 +47,35 @@ class L10n {
 
   String get add => zh ? '加入' : 'Add';
 
+  String get addOwnClass => zh ? '加入自己的課堂' : 'Add my own class';
+
+  String get ownClassTitle => zh ? '自己的課堂' : 'My own class';
+
+  String get courseTitleField => zh ? '科目名稱' : 'Course title';
+
+  String get sectionOptional => zh ? '班別（可選）' : 'Section (optional)';
+
+  String get timeSlot => zh ? '上課時間' : 'Time slot';
+
+  String get startTime => zh ? '開始' : 'Start';
+
+  String get endTime => zh ? '結束' : 'End';
+
+  String get teacherOptional => zh ? '講師（可選）' : 'Teacher (optional)';
+
+  String get showTeacher => zh ? '顯示講師' : 'Show teacher';
+
+  String get ownClassRequired => zh
+      ? '請填科目名稱，並選擇結束時間比開始時間遲。'
+      : 'Enter a course title, and choose an end time after the start.';
+
+  String get addToTimetable => zh ? '加到時間表' : 'Add to timetable';
+
   String get remove => zh ? '移除' : 'Remove';
 
   String get download => zh ? '下載圖片' : 'Download PNG';
+
+  String get wallpaper => zh ? '桌布' : 'Wallpaper';
 
   String get saveToPhotos => zh ? '儲存到照片' : 'Save to Photos';
 
@@ -64,9 +104,41 @@ class L10n {
 
   String get loadError => zh ? '無法載入課程資料' : 'Could not load course data';
 
-  String get emptyHint => zh ? '選擇班別後，就會加到時間表。' : 'Choose a section to place it on the timetable.';
+  String get emptyHint =>
+      zh ? '選擇班別後，就會加到時間表。' : 'Choose a section to place it on the timetable.';
 
   String get coursesTab => zh ? '選科' : 'Courses';
+
+  String get lecturersTab => zh ? '講師' : 'Lecturers';
+
+  String get lecturerSearch => zh ? '搜尋講師或科目' : 'Search a lecturer or course';
+
+  String get showTaughtCourses => zh ? '所教科目' : 'Courses taught';
+
+  String get hideTaughtCourses => zh ? '隱藏科目' : 'Hide courses';
+
+  String lecturerCourses(int count) =>
+      zh ? '$count 科' : (count == 1 ? '1 course' : '$count courses');
+
+  String get noLecturers => zh ? '找不到講師' : 'No lecturers found';
+
+  String get departments => zh ? '學系' : 'Department';
+
+  String departmentsChosen(int count) =>
+      zh ? '學系 · $count' : 'Department · $count';
+
+  String get departmentHint => zh ? '搜尋學系' : 'Search a department';
+
+  String get departmentHelp => zh
+      ? '未選時顯示全部學系。可同時選多個學系。'
+      : 'Shows every department until you pick one. You can pick more than one.';
+
+  String lecturerCount(int count) =>
+      zh ? '$count 人' : (count == 1 ? '1 lecturer' : '$count lecturers');
+
+  String get noDepartment => zh ? '未列學系' : 'No department listed';
+
+  String get loadingLecturers => zh ? '正在載入講師…' : 'Loading lecturers…';
 
   String get timetableTab => zh ? '時間表' : 'Timetable';
 
@@ -80,7 +152,9 @@ class L10n {
 
   String get clashTitle => zh ? '時間衝突' : 'Time clash';
 
-  String get noTime => zh ? '這班未有上課時間，不會顯示在時間表上。' : 'This section has no class time, so it is not shown on the grid.';
+  String get noTime => zh
+      ? '這班未有上課時間，不會顯示在時間表上。'
+      : 'This section has no class time, so it is not shown on the grid.';
 
   String get unscheduledTitle => zh ? '未有上課時間' : 'No class time';
 
@@ -90,7 +164,11 @@ class L10n {
 
   String get downloaded => zh ? '已下載時間表圖片' : 'Timetable image downloaded';
 
-  String get downloadFailed => zh ? '下載失敗，請再試一次' : 'Download failed. Please try again.';
+  String get wallpaperSaved =>
+      zh ? '已下載時間表桌布' : 'Timetable wallpaper downloaded';
+
+  String get downloadFailed =>
+      zh ? '下載失敗，請再試一次' : 'Download failed. Please try again.';
 
   String get clearTitle => zh ? '清除全部已選科目？' : 'Clear every selected course?';
 
@@ -107,7 +185,9 @@ class L10n {
 
   String get reviewsLoading => zh ? '正在載入評價…' : 'Loading reviews…';
 
-  String get reviewsFailed => zh ? '評價暫時載入唔到。請重新整理頁面。' : 'Reviews could not be loaded. Refresh the page.';
+  String get reviewsFailed => zh
+      ? '評價暫時載入唔到。請重新整理頁面。'
+      : 'Reviews could not be loaded. Refresh the page.';
 
   String get addReview => zh ? '寫評價' : 'Add a review';
 
@@ -127,19 +207,25 @@ class L10n {
       ? '已送到 Google 表單。幾秒後會出現在上面的圓餅圖，如果未見到就重新載入頁面。'
       : 'Sent to the Google Form. It will appear in the chart in a few seconds. Reload the page if it does not.';
 
-  String get reviewSendFailed => zh ? '送出失敗，請再試一次。' : 'Could not send the review. Please try again.';
+  String get reviewSendFailed =>
+      zh ? '送出失敗，請再試一次。' : 'Could not send the review. Please try again.';
 
-  String get reviewRequired => zh ? '請填科目編號、推薦與否，以及意見。' : 'Enter the course code, a recommendation, and a comment.';
+  String get reviewRequired => zh
+      ? '請填科目編號、推薦與否，以及意見。'
+      : 'Enter the course code, a recommendation, and a comment.';
 
   String get recommendVote => 'Recommend｜推薦';
 
   String get notRecommendVote => 'Not Recommend｜不推薦';
 
-  String recommendShare(int percent) => zh ? '推薦 $percent%' : 'Recommend $percent%';
+  String recommendShare(int percent) =>
+      zh ? '推薦 $percent%' : 'Recommend $percent%';
 
   String get unknownVote => zh ? '未標明' : 'Unspecified';
 
-  String otherVotes(int count) => zh ? '另有 $count 則未標明推薦或不推薦。' : '$count reviews did not choose recommend or not.';
+  String otherVotes(int count) => zh
+      ? '另有 $count 則未標明推薦或不推薦。'
+      : '$count reviews did not choose recommend or not.';
 
   String showAllReviews(int count) => zh ? '顯示全部 $count 則' : 'Show all $count';
 
@@ -185,10 +271,19 @@ class L10n {
     return zh ? zhs[weekday - 1] : en[weekday - 1];
   }
 
-  String dayMedium(int weekday) => zh ? '週${dayShort(weekday)}' : dayShort(weekday);
+  String dayMedium(int weekday) =>
+      zh ? '週${dayShort(weekday)}' : dayShort(weekday);
 
   String dayLong(int weekday) {
-    const en = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const en = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
     return zh ? '星期${dayShort(weekday)}' : en[weekday - 1];
   }
 

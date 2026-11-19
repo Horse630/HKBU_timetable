@@ -28,7 +28,7 @@ class Clash {
   final int weekday;
 }
 
-List<GridBlock> layoutBlocks(Catalog catalog, Map<String, List<String>> picks) {
+List<GridBlock> layoutBlocks(Catalog catalog, Map<String, List<String>> picks, {List<Course> extras = const []}) {
   final items = <GridBlock>[];
   for (final entry in picks.entries) {
     final course = catalog.byCode[entry.key];
@@ -46,6 +46,15 @@ List<GridBlock> layoutBlocks(Catalog catalog, Map<String, List<String>> picks) {
             laneCount: 1,
             conflict: false,
           ),
+        );
+      }
+    }
+  }
+  for (final course in extras) {
+    for (final section in course.sections) {
+      for (final meeting in section.meetings) {
+        items.add(
+          GridBlock(course: course, section: section, meeting: meeting, lane: 0, laneCount: 1, conflict: false),
         );
       }
     }
@@ -113,17 +122,42 @@ List<Clash> findClashes(List<GridBlock> blocks) {
       if (!rangesOverlap(a.meeting.startMinute, a.meeting.endMinute, b.meeting.startMinute, b.meeting.endMinute)) {
         continue;
       }
-      final names = ['${a.course.code} (${a.section.id})', '${b.course.code} (${b.section.id})']..sort();
+      final names = [blockHeading(a), blockHeading(b)]..sort();
       final key = '${names[0]}|${names[1]}|${a.meeting.weekday}';
       if (!seen.add(key)) continue;
-      clashes.add(
-        Clash(
-          '${a.course.code} (${a.section.id})',
-          '${b.course.code} (${b.section.id})',
-          a.meeting.weekday,
-        ),
-      );
+      clashes.add(Clash(blockHeading(a), blockHeading(b), a.meeting.weekday));
     }
   }
   return clashes;
+}
+
+String blockHeading(GridBlock block) {
+  if (block.course.custom) {
+    final section = block.section.id.trim();
+    return section.isEmpty ? block.course.title : '${block.course.title} ($section)';
+  }
+  final section = block.section.id.trim();
+  return section.isEmpty ? block.course.code : '${block.course.code} ($section)';
+}
+
+String blockLabel(GridBlock block, {required bool narrow, required bool showTeacher}) {
+  final lines = <String>[];
+  if (block.course.custom) {
+    lines.add(block.course.title);
+    final section = block.section.id.trim();
+    if (section.isNotEmpty) lines.add(section);
+  } else if (narrow) {
+    lines.add(block.course.code);
+    if (block.section.id.isNotEmpty) lines.add(block.section.id);
+  } else {
+    lines.add(block.section.id.isEmpty ? block.course.code : '${block.course.code} (${block.section.id})');
+  }
+  if (showTeacher) {
+    for (final name in block.section.instructors) {
+      final trimmed = name.trim();
+      if (trimmed.isNotEmpty) lines.add(trimmed);
+    }
+  }
+  if (block.meeting.venue.isNotEmpty) lines.add(block.meeting.venue);
+  return lines.join('\n');
 }

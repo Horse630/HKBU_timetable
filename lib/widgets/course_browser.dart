@@ -17,6 +17,10 @@ class CourseBrowser extends StatelessWidget {
     required this.subjects,
     required this.selectedSubjects,
     required this.selectedDays,
+    required this.noExam,
+    required this.noTest,
+    required this.onToggleNoExam,
+    required this.onToggleNoTest,
     required this.onToggleDay,
     required this.onToggleSort,
     required this.onToggleSubject,
@@ -27,6 +31,7 @@ class CourseBrowser extends StatelessWidget {
     required this.onExpand,
     required this.onSection,
     required this.onOpenOutline,
+    required this.onAddCustom,
   });
 
   final L10n strings;
@@ -38,6 +43,10 @@ class CourseBrowser extends StatelessWidget {
   final List<String> subjects;
   final Set<String> selectedSubjects;
   final Set<int> selectedDays;
+  final bool noExam;
+  final bool noTest;
+  final VoidCallback onToggleNoExam;
+  final VoidCallback onToggleNoTest;
   final ValueChanged<int> onToggleDay;
   final VoidCallback onToggleSort;
   final ValueChanged<String> onToggleSubject;
@@ -48,6 +57,7 @@ class CourseBrowser extends StatelessWidget {
   final ValueChanged<String> onExpand;
   final void Function(Course course, Section section) onSection;
   final ValueChanged<String> onOpenOutline;
+  final VoidCallback onAddCustom;
 
   @override
   Widget build(BuildContext context) {
@@ -77,62 +87,20 @@ class CourseBrowser extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _ChoiceButton(
-                      label: strings.sortByRating,
-                      icon: Icons.sort,
-                      selected: sortByRating,
-                      onPressed: onToggleSort,
-                    ),
-                    _ChoiceButton(
-                      label: selectedSubjects.isEmpty ? strings.subjects : strings.subjectsChosen(selectedSubjects.length),
-                      icon: Icons.filter_alt_outlined,
-                      selected: selectedSubjects.isNotEmpty,
-                      onPressed: () => _pickSubjects(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final day in const [1, 2, 3, 4, 5, 6])
-                      _DayButton(
-                        label: strings.dayMedium(day),
-                        selected: selectedDays.contains(day),
-                        onPressed: () => onToggleDay(day),
-                      ),
-                  ],
-                ),
-                if (selectedSubjects.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final subject in (selectedSubjects.toList()..sort()))
-                        InputChip(
-                          label: Text(subject),
-                          visualDensity: VisualDensity.compact,
-                          backgroundColor: const Color(0xFFE7EEF5),
-                          labelStyle: const TextStyle(color: Color(0xFF0C3C6E), fontWeight: FontWeight.w700),
-                          deleteIconColor: const Color(0xFF0C3C6E),
-                          onDeleted: () => onToggleSubject(subject),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
+          _FilterPanel(
+            strings: strings,
+            sortByRating: sortByRating,
+            selectedSubjects: selectedSubjects,
+            selectedDays: selectedDays,
+            noExam: noExam,
+            noTest: noTest,
+            onToggleNoExam: onToggleNoExam,
+            onToggleNoTest: onToggleNoTest,
+            onToggleDay: onToggleDay,
+            onToggleSort: onToggleSort,
+            onToggleSubject: onToggleSubject,
+            onPickSubjects: () => _pickSubjects(context),
+            onAddCustom: onAddCustom,
           ),
           Expanded(
             child: courses.isEmpty
@@ -154,7 +122,9 @@ class CourseBrowser extends StatelessWidget {
                         onSubmitReview: onSubmitReview,
                         onExpand: () => onExpand(expanded ? '' : course.code),
                         onSection: (section) => onSection(course, section),
-                        onOpenOutline: course.outline.isEmpty ? null : () => onOpenOutline(course.outline),
+                        onOpenOutline: course.outline.isEmpty
+                            ? null
+                            : () => onOpenOutline(course.outline),
                       );
                     },
                   ),
@@ -178,8 +148,177 @@ class CourseBrowser extends StatelessWidget {
   }
 }
 
+class _FilterPanel extends StatefulWidget {
+  const _FilterPanel({
+    required this.strings,
+    required this.sortByRating,
+    required this.selectedSubjects,
+    required this.selectedDays,
+    required this.noExam,
+    required this.noTest,
+    required this.onToggleNoExam,
+    required this.onToggleNoTest,
+    required this.onToggleDay,
+    required this.onToggleSort,
+    required this.onToggleSubject,
+    required this.onPickSubjects,
+    required this.onAddCustom,
+  });
+
+  final L10n strings;
+  final bool sortByRating;
+  final Set<String> selectedSubjects;
+  final Set<int> selectedDays;
+  final bool noExam;
+  final bool noTest;
+  final VoidCallback onToggleNoExam;
+  final VoidCallback onToggleNoTest;
+  final ValueChanged<int> onToggleDay;
+  final VoidCallback onToggleSort;
+  final ValueChanged<String> onToggleSubject;
+  final VoidCallback onPickSubjects;
+  final VoidCallback onAddCustom;
+
+  @override
+  State<_FilterPanel> createState() => _FilterPanelState();
+}
+
+class _FilterPanelState extends State<_FilterPanel> {
+  var _shown = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F7FB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFD7E0EA)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(12, 4, 4, _shown ? 12 : 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      strings.filterTools,
+                      style: const TextStyle(
+                        color: Color(0xFF0C3C6E),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: _shown ? strings.hideFilters : strings.showFilters,
+                    visualDensity: VisualDensity.compact,
+                    color: const Color(0xFF0C3C6E),
+                    onPressed: () => setState(() => _shown = !_shown),
+                    icon: Icon(
+                      _shown
+                          ? Icons.keyboard_arrow_down
+                          : Icons.keyboard_arrow_up,
+                    ),
+                  ),
+                ],
+              ),
+              if (_shown) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _ChoiceButton(
+                      label: strings.sortByRating,
+                      icon: Icons.sort,
+                      selected: widget.sortByRating,
+                      onPressed: widget.onToggleSort,
+                    ),
+                    _ChoiceButton(
+                      label: widget.selectedSubjects.isEmpty
+                          ? strings.subjects
+                          : strings.subjectsChosen(
+                              widget.selectedSubjects.length,
+                            ),
+                      icon: Icons.filter_alt_outlined,
+                      selected: widget.selectedSubjects.isNotEmpty,
+                      onPressed: widget.onPickSubjects,
+                    ),
+                    _ChoiceButton(
+                      label: strings.noExam,
+                      icon: Icons.event_busy,
+                      selected: widget.noExam,
+                      onPressed: widget.onToggleNoExam,
+                    ),
+                    _ChoiceButton(
+                      label: strings.noTest,
+                      icon: Icons.rule,
+                      selected: widget.noTest,
+                      onPressed: widget.onToggleNoTest,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final day in const [1, 2, 3, 4, 5, 6])
+                      _DayButton(
+                        label: strings.dayMedium(day),
+                        selected: widget.selectedDays.contains(day),
+                        onPressed: () => widget.onToggleDay(day),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _ChoiceButton(
+                  label: strings.addOwnClass,
+                  icon: Icons.add,
+                  selected: false,
+                  onPressed: widget.onAddCustom,
+                ),
+                if (widget.selectedSubjects.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final subject
+                          in (widget.selectedSubjects.toList()..sort()))
+                        InputChip(
+                          label: Text(subject),
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: const Color(0xFFE7EEF5),
+                          labelStyle: const TextStyle(
+                            color: Color(0xFF0C3C6E),
+                            fontWeight: FontWeight.w700,
+                          ),
+                          deleteIconColor: const Color(0xFF0C3C6E),
+                          onDeleted: () => widget.onToggleSubject(subject),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DayButton extends StatelessWidget {
-  const _DayButton({required this.label, required this.selected, required this.onPressed});
+  const _DayButton({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
 
   final String label;
   final bool selected;
@@ -191,7 +330,9 @@ class _DayButton extends StatelessWidget {
       style: TextButton.styleFrom(
         visualDensity: VisualDensity.compact,
         minimumSize: const Size(48, 36),
-        backgroundColor: selected ? const Color(0xFF0C3C6E) : const Color(0xFFE7EEF5),
+        backgroundColor: selected
+            ? const Color(0xFF0C3C6E)
+            : const Color(0xFFE7EEF5),
         foregroundColor: selected ? Colors.white : const Color(0xFF0C3C6E),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       ),
@@ -219,7 +360,9 @@ class _ChoiceButton extends StatelessWidget {
     return TextButton.icon(
       style: TextButton.styleFrom(
         visualDensity: VisualDensity.compact,
-        backgroundColor: selected ? const Color(0xFF0C3C6E) : const Color(0xFFE7EEF5),
+        backgroundColor: selected
+            ? const Color(0xFF0C3C6E)
+            : const Color(0xFFE7EEF5),
         foregroundColor: selected ? Colors.white : const Color(0xFF0C3C6E),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       ),
@@ -262,7 +405,9 @@ class _SubjectDialogState extends State<_SubjectDialog> {
   @override
   Widget build(BuildContext context) {
     final q = _query.text.trim().toUpperCase();
-    final shown = q.isEmpty ? widget.subjects : widget.subjects.where((subject) => subject.contains(q)).toList();
+    final shown = q.isEmpty
+        ? widget.subjects
+        : widget.subjects.where((subject) => subject.contains(q)).toList();
     return Dialog(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420, maxHeight: 520),
@@ -271,9 +416,22 @@ class _SubjectDialogState extends State<_SubjectDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(widget.strings.subjects, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(
+                widget.strings.subjects,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(widget.strings.subjectHelp, style: const TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.35)),
+              Text(
+                widget.strings.subjectHelp,
+                style: const TextStyle(
+                  color: Color(0xFF667085),
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
               const SizedBox(height: 10),
               TextField(
                 controller: _query,
@@ -300,12 +458,15 @@ class _SubjectDialogState extends State<_SubjectDialog> {
                           showCheckmark: false,
                           selectedColor: const Color(0xFF0C3C6E),
                           labelStyle: TextStyle(
-                            color: _selected.contains(subject) ? Colors.white : const Color(0xFF0C3C6E),
+                            color: _selected.contains(subject)
+                                ? Colors.white
+                                : const Color(0xFF0C3C6E),
                             fontWeight: FontWeight.w700,
                           ),
                           onSelected: (_) {
                             setState(() {
-                              if (!_selected.add(subject)) _selected.remove(subject);
+                              if (!_selected.add(subject))
+                                _selected.remove(subject);
                             });
                             widget.onToggle(subject);
                           },
@@ -328,7 +489,9 @@ class _SubjectDialogState extends State<_SubjectDialog> {
                   ),
                   const Spacer(),
                   FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFF0C3C6E)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C3C6E),
+                    ),
                     onPressed: () => Navigator.pop(context),
                     child: Text(widget.strings.done),
                   ),
@@ -396,20 +559,53 @@ class _CourseTile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(course.code, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        Text(
+                          course.code,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                         const SizedBox(height: 2),
                         Text(primary),
                         if (secondary != null)
-                          Text(secondary, style: const TextStyle(color: Color(0xFF667085), fontSize: 12)),
+                          Text(
+                            secondary,
+                            style: const TextStyle(
+                              color: Color(0xFF667085),
+                              fontSize: 12,
+                            ),
+                          ),
                         const SizedBox(height: 2),
                         Text(
-                          strings.courseMeta(formatUnits(course.units), course.sections.length),
-                          style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
+                          strings.courseMeta(
+                            formatUnits(course.units),
+                            course.sections.length,
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF667085),
+                            fontSize: 12,
+                          ),
                         ),
-                        if (tally != null && tally.rated > 0)
+                        if ((tally != null && tally.rated > 0) ||
+                            course.hasExam == false ||
+                            course.hasTest == false)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: _ReviewBadge(percent: tally.recommendPercent, label: strings.recommendShare(tally.recommendPercent)),
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                if (tally != null && tally.rated > 0)
+                                  _ReviewBadge(
+                                    percent: tally.recommendPercent,
+                                    label: strings.recommendShare(
+                                      tally.recommendPercent,
+                                    ),
+                                  ),
+                                if (course.hasExam == false)
+                                  _AssessmentBadge(label: strings.noExam),
+                                if (course.hasTest == false)
+                                  _AssessmentBadge(label: strings.noTest),
+                              ],
+                            ),
                           ),
                       ],
                     ),
@@ -434,9 +630,21 @@ class _CourseTile extends StatelessWidget {
                   label: Text(strings.outline),
                 ),
               ),
-            if (course.prerequisites.isNotEmpty) _Note(label: strings.prerequisite, text: course.prerequisites.join(' | ')),
-            if (course.corequisites.isNotEmpty) _Note(label: strings.corequisite, text: course.corequisites.join(' | ')),
-            if (course.targetStudents.isNotEmpty) _Note(label: strings.target, text: course.targetStudents.join(' | ')),
+            if (course.prerequisites.isNotEmpty)
+              _Note(
+                label: strings.prerequisite,
+                text: course.prerequisites.join(' | '),
+              ),
+            if (course.corequisites.isNotEmpty)
+              _Note(
+                label: strings.corequisite,
+                text: course.corequisites.join(' | '),
+              ),
+            if (course.targetStudents.isNotEmpty)
+              _Note(
+                label: strings.target,
+                text: course.targetStudents.join(' | '),
+              ),
             CourseReviews(
               key: ValueKey(course.code),
               strings: strings,
@@ -473,12 +681,44 @@ class _ReviewBadge extends StatelessWidget {
     final positive = percent >= 50;
     final color = positive ? const Color(0xFF146C36) : const Color(0xFFB42318);
     final fill = positive ? const Color(0xFFE5F6EC) : const Color(0xFFFDECEC);
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(99)),
-        child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _AssessmentBadge extends StatelessWidget {
+  const _AssessmentBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE7EEF5),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF0C3C6E),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -496,7 +736,11 @@ class _Note extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
       child: Text(
         '$label: $text',
-        style: const TextStyle(color: Color(0xFF475467), fontSize: 12, height: 1.35),
+        style: const TextStyle(
+          color: Color(0xFF475467),
+          fontSize: 12,
+          height: 1.35,
+        ),
       ),
     );
   }
@@ -518,7 +762,13 @@ class _SectionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final times = section.meetings
-        .map((meeting) => strings.slot(strings.dayMedium(meeting.weekday), meeting.start, meeting.end))
+        .map(
+          (meeting) => strings.slot(
+            strings.dayMedium(meeting.weekday),
+            meeting.start,
+            meeting.end,
+          ),
+        )
         .join(' · ');
     final label = selected ? strings.remove : strings.add;
     return Padding(
@@ -530,15 +780,31 @@ class _SectionRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(section.id, style: const TextStyle(fontWeight: FontWeight.w700)),
-                Text(times.isEmpty ? strings.noTime : times, style: const TextStyle(fontSize: 13, height: 1.3)),
+                Text(
+                  section.id,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  times.isEmpty ? strings.noTime : times,
+                  style: const TextStyle(fontSize: 13, height: 1.3),
+                ),
                 for (final name in section.instructors)
                   Text(
                     '${strings.instructor}: $name',
-                    style: const TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.3),
+                    style: const TextStyle(
+                      color: Color(0xFF667085),
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
                   ),
                 if (section.medium.isNotEmpty)
-                  Text(strings.medium(section.medium), style: const TextStyle(color: Color(0xFF667085), fontSize: 12)),
+                  Text(
+                    strings.medium(section.medium),
+                    style: const TextStyle(
+                      color: Color(0xFF667085),
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -546,8 +812,12 @@ class _SectionRow extends StatelessWidget {
           TextButton(
             style: TextButton.styleFrom(
               visualDensity: VisualDensity.compact,
-              backgroundColor: selected ? const Color(0xFF0C3C6E) : const Color(0xFFE7EEF5),
-              foregroundColor: selected ? Colors.white : const Color(0xFF0C3C6E),
+              backgroundColor: selected
+                  ? const Color(0xFF0C3C6E)
+                  : const Color(0xFFE7EEF5),
+              foregroundColor: selected
+                  ? Colors.white
+                  : const Color(0xFF0C3C6E),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
             onPressed: onPressed,

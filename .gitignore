@@ -1,3 +1,9 @@
+# Secrets. Never commit tokens, keys, or environment files.
+.env
+.env.*
+*.pem
+secrets/
+
 # Miscellaneous
 *.class
 *.log

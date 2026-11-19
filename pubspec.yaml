@@ -60,6 +60,8 @@ flutter:
 
   assets:
     - assets/courses.json
+    - assets/assessments.json
+    - data/courses.json
 
   fonts:
     - family: NotoSansTC

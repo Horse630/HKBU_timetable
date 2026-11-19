@@ -93,6 +93,9 @@ class Course {
     required this.corequisites,
     required this.targetStudents,
     required this.sections,
+    this.custom = false,
+    this.hasExam,
+    this.hasTest,
   });
 
   final String code;
@@ -104,7 +107,12 @@ class Course {
   final List<String> corequisites;
   final List<String> targetStudents;
   final List<Section> sections;
+  final bool custom;
 
+  /// Null when the outline could not be read. False means the assessment
+  /// table has no exam, or no test.
+  final bool? hasExam;
+  final bool? hasTest;
   String displayTitle(bool zh) {
     if (zh && chineseTitle.isNotEmpty) return chineseTitle;
     return title;
@@ -117,7 +125,7 @@ class Course {
     return null;
   }
 
-  factory Course.fromJson(Map<String, dynamic> json) {
+  factory Course.fromJson(Map<String, dynamic> json, {bool? hasExam, bool? hasTest}) {
     return Course(
       code: json['code'] as String,
       title: json['title'] as String? ?? '',
@@ -128,6 +136,8 @@ class Course {
       corequisites: (json['coreq'] as List<dynamic>? ?? const []).cast<String>(),
       targetStudents: (json['target'] as List<dynamic>? ?? const []).cast<String>(),
       sections: (json['sections'] as List<dynamic>).map((item) => Section.fromJson(item as Map<String, dynamic>)).toList(),
+      hasExam: hasExam,
+      hasTest: hasTest,
     );
   }
 }
@@ -142,8 +152,33 @@ class Catalog {
 
   static Future<Catalog> load() async {
     final raw = await rootBundle.loadString('assets/courses.json');
+    final flags = await _loadAssessments();
     final json = jsonDecode(raw) as Map<String, dynamic>;
-    final courses = (json['courses'] as List<dynamic>).map((item) => Course.fromJson(item as Map<String, dynamic>)).toList();
+    final courses = (json['courses'] as List<dynamic>).map((item) {
+      final row = item as Map<String, dynamic>;
+      final flag = flags[row['code']];
+      return Course.fromJson(row, hasExam: flag?.exam, hasTest: flag?.test);
+    }).toList();
     return Catalog(courses);
   }
+}
+
+class _AssessmentFlag {
+  const _AssessmentFlag({required this.exam, required this.test});
+
+  final bool? exam;
+  final bool? test;
+}
+
+Future<Map<String, _AssessmentFlag>> _loadAssessments() async {
+  final raw = await rootBundle.loadString('assets/assessments.json');
+  final json = jsonDecode(raw) as Map<String, dynamic>;
+  final courses = json['courses'] as Map<String, dynamic>;
+  return {
+    for (final entry in courses.entries)
+      entry.key: _AssessmentFlag(
+        exam: (entry.value as Map<String, dynamic>)['exam'] as bool?,
+        test: (entry.value as Map<String, dynamic>)['test'] as bool?,
+      ),
+  };
 }
