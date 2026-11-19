@@ -415,7 +415,10 @@ class _TimetableAppState extends State<TimetableApp> {
 
   void _focusCourse(GridBlock block) {
     if (block.course.custom) return;
-    final code = block.course.code;
+    _showCourse(block.course.code);
+  }
+
+  void _showCourse(String code) {
     _search.value = TextEditingValue(
       text: code,
       selection: TextSelection.collapsed(offset: code.length),
@@ -578,7 +581,7 @@ class _TimetableAppState extends State<TimetableApp> {
       onToggleTeachers: _toggleTeachers,
       onAddCustom: _addCustom,
     );
-    final lecturers = LecturerBrowser(strings: strings);
+    final lecturers = LecturerBrowser(strings: strings, onCourse: _showCourse);
 
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -114,9 +114,15 @@ void main() {
   testWidgets('search finds a lecturer and the button shows their courses', (
     tester,
   ) async {
+    String? opened;
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: LecturerBrowser(strings: L10n('zh'))),
+      MaterialApp(
+        home: Scaffold(
+          body: LecturerBrowser(
+            strings: const L10n('zh'),
+            onCourse: (code) => opened = code,
+          ),
+        ),
       ),
     );
     expect(find.text('正在載入講師…'), findsOneWidget);
@@ -140,6 +146,9 @@ void main() {
 
     expect(find.textContaining('隱藏科目'), findsOneWidget);
     expect(find.textContaining('ACCT1006 (00001)'), findsOneWidget);
+    await tester.tap(find.textContaining('ACCT1006 (00001)'));
+    await tester.pump();
+    expect(opened, 'ACCT1006');
     expect(
       find.text('Department of Accountancy, Economics and Finance'),
       findsWidgets,

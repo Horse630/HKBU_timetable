@@ -4,9 +4,14 @@ import '../l10n.dart';
 import '../lecturers.dart';
 
 class LecturerBrowser extends StatefulWidget {
-  const LecturerBrowser({super.key, required this.strings});
+  const LecturerBrowser({
+    super.key,
+    required this.strings,
+    required this.onCourse,
+  });
 
   final L10n strings;
+  final ValueChanged<String> onCourse;
 
   @override
   State<LecturerBrowser> createState() => _LecturerBrowserState();
@@ -155,6 +160,7 @@ class _LecturerBrowserState extends State<LecturerBrowser> {
                                 if (!_open.add(name)) _open.remove(name);
                               });
                             },
+                            onOpenCourse: widget.onCourse,
                           );
                         },
                       ),
@@ -216,6 +222,7 @@ class _DepartmentSection extends StatelessWidget {
     required this.courseOpen,
     required this.onToggleSection,
     required this.onToggleCourse,
+    required this.onOpenCourse,
   });
 
   final DepartmentGroup group;
@@ -224,6 +231,7 @@ class _DepartmentSection extends StatelessWidget {
   final Set<String> courseOpen;
   final VoidCallback onToggleSection;
   final ValueChanged<String> onToggleCourse;
+  final ValueChanged<String> onOpenCourse;
 
   @override
   Widget build(BuildContext context) {
@@ -250,6 +258,7 @@ class _DepartmentSection extends StatelessWidget {
                   strings: strings,
                   open: courseOpen.contains(lecturer.name),
                   onToggle: () => onToggleCourse(lecturer.name),
+                  onOpenCourse: onOpenCourse,
                 ),
           ],
         ),
@@ -449,12 +458,14 @@ class _LecturerTile extends StatelessWidget {
     required this.strings,
     required this.open,
     required this.onToggle,
+    required this.onOpenCourse,
   });
 
   final Lecturer lecturer;
   final L10n strings;
   final bool open;
   final VoidCallback onToggle;
+  final ValueChanged<String> onOpenCourse;
 
   @override
   Widget build(BuildContext context) {
@@ -496,32 +507,34 @@ class _LecturerTile extends StatelessWidget {
             for (final course in lecturer.courses)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F7FB),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          course.sectionId.isEmpty
-                              ? course.code
-                              : '${course.code} (${course.sectionId})',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        Text(course.displayTitle(strings.zh)),
-                        if (course.times.isNotEmpty)
+                child: Material(
+                  color: const Color(0xFFF4F7FB),
+                  borderRadius: BorderRadius.circular(8),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => onOpenCourse(course.code),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            course.times.join(' · '),
-                            style: const TextStyle(
-                              color: Color(0xFF667085),
-                              fontSize: 12,
-                            ),
+                            course.sectionId.isEmpty
+                                ? course.code
+                                : '${course.code} (${course.sectionId})',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                      ],
+                          Text(course.displayTitle(strings.zh)),
+                          if (course.times.isNotEmpty)
+                            Text(
+                              course.times.join(' · '),
+                              style: const TextStyle(
+                                color: Color(0xFF667085),
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
